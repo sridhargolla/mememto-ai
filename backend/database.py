@@ -54,6 +54,16 @@ def init_db():
             except Exception as e:
                 print(f"Migration warning (language): {e}")
         
+        # Check if performance_metrics table exists
+        result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance_metrics'"))
+        perf_table_exists = result.fetchone() is not None
+        
+        if not perf_table_exists:
+            print("Migration: Creating performance_metrics table")
+            # Base.metadata.create_all will handle this, but we log it
+        else:
+            print("Migration: performance_metrics table already exists")
+        
         # Commit changes (SQLAlchemy engine connection handles this, but commit is good practice)
         conn.commit()
 

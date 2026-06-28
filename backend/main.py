@@ -12,7 +12,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from model_wrapper import LocalLLM
 from database import init_db, get_db
-from models import Memory, Conversation
+from models import Memory, Conversation, PerformanceMetrics
 from memory_service import MemoryService, ConversationService
 from document_ingestion import DocumentExtractor, MemoryExtractor
 from audio_processor import AudioProcessorService
@@ -27,6 +27,7 @@ from auth_service import create_user, authenticate_user, create_access_token, de
 from language_service import detect_language, get_language_instruction
 from retry_utils import retry_with_logging
 from prompt_sanitizer import PromptSanitizer
+from metrics_service import MetricsService
 from sqlalchemy.orm import Session
 from models import User
 
@@ -104,6 +105,16 @@ if os.path.exists(model_path):
         llm = LocalLLM(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads)
         model_loaded = True
         print(f"✓ Model loaded successfully from {model_path}")
+        
+        # Record model load metric
+        from database import SessionLocal
+        db = SessionLocal()
+        try:
+            metrics_service = MetricsService(db)
+            model_name = model_path.split('/')[-1] if '/' in model_path else model_path
+            metrics_service.record_model_load(model_name, llm.model_load_time)
+        finally:
+            db.close()
     except Exception as e:
         print(f"✗ Failed to load model: {e}")
         print(f"  Model path: {model_path}")
@@ -499,6 +510,89 @@ async def benchmark():
     )
 
 
+# Performance metrics endpoints
+class MetricsResponse(BaseModel):
+    metric_type: str
+    metric_name: Optional[str]
+    duration_seconds: float
+    memory_usage_mb: Optional[float]
+    cpu_usage_percent: Optional[float]
+    tokens_generated: Optional[int]
+    tokens_per_second: Optional[float]
+    document_count: Optional[int]
+    timestamp: str
+
+
+class AggregatedMetricsResponse(BaseModel):
+    count: int
+    avg_duration: float
+    min_duration: float
+    max_duration: float
+    avg_memory_mb: float
+    avg_cpu_percent: float
+
+
+@app.get("/metrics", response_model=List[MetricsResponse])
+async def get_metrics(
+    metric_type: Optional[str] = None,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get performance metrics with optional filtering."""
+    metrics_service = MetricsService(db)
+    metrics = metrics_service.get_metrics(metric_type=metric_type, user_id=current_user.id, limit=limit)
+    
+    return [
+        MetricsResponse(
+            metric_type=m.metric_type,
+            metric_name=m.metric_name,
+            duration_seconds=m.duration_seconds,
+            memory_usage_mb=m.memory_usage_mb,
+            cpu_usage_percent=m.cpu_usage_percent,
+            tokens_generated=m.tokens_generated,
+            tokens_per_second=m.tokens_per_second,
+            document_count=m.document_count,
+            timestamp=m.timestamp.isoformat()
+        )
+        for m in metrics
+    ]
+
+
+@app.get("/metrics/aggregated/{metric_type}", response_model=AggregatedMetricsResponse)
+async def get_aggregated_metrics(
+    metric_type: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get aggregated statistics for a specific metric type."""
+    metrics_service = MetricsService(db)
+    return metrics_service.get_aggregated_metrics(metric_type=metric_type, user_id=current_user.id)
+
+
+@app.get("/metrics/inference/recent")
+async def get_recent_inference(
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get recent inference statistics."""
+    metrics_service = MetricsService(db)
+    return metrics_service.get_recent_inference_stats(user_id=current_user.id, limit=limit)
+
+
+@app.delete("/metrics/cleanup")
+async def cleanup_metrics(
+    days_to_keep: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Clean up old metrics (default: keep last 30 days)."""
+    metrics_service = MetricsService(db)
+    deleted_count = metrics_service.cleanup_old_metrics(days_to_keep=days_to_keep)
+    return {"deleted": deleted_count, "message": f"Deleted {deleted_count} old metric records"}
+
+
 # Timeline endpoint
 @app.get("/timeline", response_model=List[TimelineItem])
 async def get_timeline(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -653,8 +747,10 @@ Answer:"""
             
             # Stream tokens
             full_response = ""
+            token_count = 0
             for token in stream:
                 full_response += token
+                token_count += 1
                 yield f"data: {json.dumps({'token': token})}\n\n"
             
             # Cache the response for future use
@@ -662,6 +758,19 @@ Answer:"""
                 response_cache.set(augmented_prompt, full_response, max_tokens=512, temperature=0.7)
             else:
                 response_cache.set(chat_prompt, full_response, max_tokens=512, temperature=0.7)
+            
+            # Record inference metrics to database
+            try:
+                metrics_service = MetricsService(db)
+                model_name = llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path
+                metrics_service.record_inference(
+                    model_name=model_name,
+                    duration_seconds=llm.last_inference_time,
+                    tokens_generated=token_count,
+                    user_id=current_user.id
+                )
+            except Exception as e:
+                print(f"Failed to record inference metric: {e}")
             
             # Prepare performance metrics
             metrics = {

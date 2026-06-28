@@ -12,6 +12,7 @@ import Timeline from './Timeline'
 import Privacy from './pages/Privacy'
 import Settings from './pages/Settings'
 import SystemStatus from './SystemStatus'
+import PerformanceDashboard from './PerformanceDashboard'
 import './i18n'
 import './App.css'
 
@@ -339,6 +340,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SystemStatus />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/dashboard/performance" 
+            element={
+              <ProtectedRoute>
+                <PerformanceDashboard />
               </ProtectedRoute>
             } 
           />

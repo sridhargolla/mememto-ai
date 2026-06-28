@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, LargeBinary, Index, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, LargeBinary, Index, ForeignKey, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -97,3 +97,27 @@ class Conversation(Base):
     
     # Relationship
     user = relationship("User", back_populates="conversations")
+
+
+class PerformanceMetrics(Base):
+    """Performance metrics for monitoring system performance locally."""
+    __tablename__ = "performance_metrics"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    metric_type = Column(String(50), nullable=False, index=True)  # model_load, inference, document_process
+    metric_name = Column(String(255), nullable=True)  # e.g., "Qwen2.5-3B-Instruct"
+    duration_seconds = Column(Float, nullable=False)  # Time taken
+    memory_usage_mb = Column(Float, nullable=True)  # Memory usage during operation
+    cpu_usage_percent = Column(Float, nullable=True)  # CPU usage during operation
+    tokens_generated = Column(Integer, nullable=True)  # For inference metrics
+    tokens_per_second = Column(Float, nullable=True)  # For inference metrics
+    document_count = Column(Integer, nullable=True)  # For document processing
+    metadata_json = Column(Text, nullable=True)  # Additional metadata
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_metrics_type', 'metric_type'),
+        Index('idx_metrics_timestamp', 'timestamp'),
+    )
