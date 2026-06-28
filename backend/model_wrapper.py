@@ -1,4 +1,5 @@
 import os
+import time
 from llama_cpp import Llama
 from typing import Optional, Iterator
 from cache_service import response_cache
@@ -29,12 +30,14 @@ class LocalLLM:
         self.last_token_count = 0
         self.last_tokens_per_second = 0.0
         self.last_time_to_first_token = 0.0
+        self.model_load_time = 0.0
         
         if not lazy_load:
             self._load_model()
     
     def _load_model(self):
-        """Load the GGUF model into memory."""
+        """Load the GGUF model into memory with timing."""
+        start_time = time.time()
         try:
             self.model = Llama(
                 model_path=self.model_path,
@@ -43,6 +46,8 @@ class LocalLLM:
                 n_gpu_layers=0,  # CRITICAL: Disable GPU offloading, enforce CPU-only AI
                 verbose=False
             )
+            self.model_load_time = time.time() - start_time
+            print(f"Model loaded in {self.model_load_time:.2f} seconds")
         except Exception as e:
             raise RuntimeError(f"Failed to load model: {e}")
     
