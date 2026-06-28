@@ -29,9 +29,12 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
+        console.log('Login successful, data:', data);
         login(data.access_token, data.user);
+        console.log('After login, navigating to dashboard');
         navigate('/dashboard');
       } else {
+        console.log('Login failed:', data);
         setError(data.detail || t('auth.loginFailed'));
       }
     } catch (err) {

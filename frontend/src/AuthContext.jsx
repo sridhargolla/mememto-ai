@@ -33,7 +33,6 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-    navigate('/');
   };
 
   const isAuthenticated = () => {
