@@ -17,7 +17,7 @@ function SystemStatus() {
   const fetchStatus = async () => {
     const token = localStorage.getItem('token')
     try {
-      const response = await fetch('http://localhost:8000/system/status', {
+      const response = await fetch('/api/system/status', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -31,7 +31,7 @@ function SystemStatus() {
         setError(`Server returned ${response.status}`)
       }
     } catch (err) {
-      setError('Cannot connect to backend at localhost:8000')
+      setError('Cannot connect to backend')
     } finally {
       setLoading(false)
     }
@@ -50,12 +50,12 @@ function SystemStatus() {
   ] : []
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         {/* Header */}
-        <header className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center gap-4">
+        <header className="glass-card-dark border-b border-slate-700/50 px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-gray-400 hover:text-white"
@@ -87,9 +87,9 @@ function SystemStatus() {
           )}
 
           {error && !loading && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+            <div className="glass-card-dark bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center animate-fade-in">
               <p className="text-red-400 font-medium">⚠️ {error}</p>
-              <p className="text-gray-500 text-sm mt-1">Make sure the backend server is running on port 8000.</p>
+              <p className="text-gray-500 text-sm mt-1">Make sure the backend server is running.</p>
             </div>
           )}
 
@@ -98,7 +98,7 @@ function SystemStatus() {
               {/* Status Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 {statusCards.map((card, i) => (
-                  <div key={i} className="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-slate-500 transition-colors">
+                  <div key={i} className="glass-card-dark rounded-xl p-5 border border-slate-700/50 hover:border-slate-500/50 transition-colors premium-card">
                     <div className="flex items-center gap-3 mb-3">
                       <span className="text-2xl">{card.icon}</span>
                       <h3 className="text-gray-400 text-sm font-medium">{card.label}</h3>
@@ -111,7 +111,7 @@ function SystemStatus() {
               </div>
 
               {/* Architecture Overview */}
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+              <div className="glass-card-dark rounded-xl p-6 border border-slate-700/50 animate-fade-in">
                 <h2 className="text-lg font-semibold text-white mb-5">🏗️ Architecture Overview</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
