@@ -1,7 +1,7 @@
 import os
 import tempfile
 import json
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Header
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -104,7 +104,7 @@ if os.path.exists(model_path):
     try:
         llm = LocalLLM(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads)
         model_loaded = True
-        print(f"✓ Model loaded successfully from {model_path}")
+        print(f"[OK] Model loaded successfully from {model_path}")
         
         # Record model load metric
         from database import SessionLocal
@@ -116,11 +116,11 @@ if os.path.exists(model_path):
         finally:
             db.close()
     except Exception as e:
-        print(f"✗ Failed to load model: {e}")
+        print(f"[ERROR] Failed to load model: {e}")
         print(f"  Model path: {model_path}")
         print(f"  The system will run in degraded mode (no AI chat).")
 else:
-    print(f"✗ Model file not found: {model_path}")
+    print(f"[ERROR] Model file not found: {model_path}")
     print(f"  Please run 'python setup_models.py' to download required models.")
     print(f"  Or manually download a GGUF model and update MODEL_PATH in .env")
     print(f"  The system will run in degraded mode (no AI chat).")
@@ -313,7 +313,7 @@ async def ai_status():
 # Authentication endpoints
 @app.post("/auth/signup", response_model=TokenResponse)
 @limiter.limit("5/minute")
-async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
+async def signup(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user."""
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -341,7 +341,7 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/auth/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
-async def login(user_data: UserLogin, db: Session = Depends(get_db)):
+async def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db)):
     """Login a user and return JWT token."""
     user = authenticate_user(db, user_data.email, user_data.password)
     if not user:
@@ -630,7 +630,7 @@ async def get_timeline(current_user: User = Depends(get_current_user), db: Sessi
 # Chat endpoint (streaming)
 @app.post("/chat")
 @limiter.limit("20/minute")
-async def chat(request: ChatRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def chat(request: Request, chat_request: ChatRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if llm is None:
         async def error_stream():
             error_msg = "AI model not loaded. Please download models using 'python setup_models.py' "
@@ -885,7 +885,7 @@ async def delete_conversation_endpoint(conversation_id: int, db: Session = Depen
 # Async document upload endpoint
 @app.post("/upload/async", response_model=AsyncUploadResponse)
 @limiter.limit("10/minute")
-async def upload_document_async(file: UploadFile = File(...)):
+async def upload_document_async(request: Request, file: UploadFile = File(...)):
     """Upload document for async background processing."""
     
     # File size limit: 50MB
@@ -960,6 +960,7 @@ async def get_task_status(task_id: str):
 @app.post("/upload", response_model=DocumentUploadResponse)
 @limiter.limit("5/minute")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
