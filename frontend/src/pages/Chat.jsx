@@ -27,8 +27,20 @@ function Chat() {
 
   const fetchHistory = async () => {
     const token = localStorage.getItem('token');
+    
+    // First, try to load from localStorage for immediate display
+    const localMessages = localStorage.getItem('chatMessages');
+    if (localMessages) {
+      try {
+        setMessages(JSON.parse(localMessages));
+      } catch (e) {
+        console.error('Failed to parse local messages:', e);
+      }
+    }
+    
+    // Then fetch from backend
     try {
-      const response = await fetch('/api/conversations?limit=20', {
+      const response = await fetch('/api/conversations?limit=100', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
@@ -49,6 +61,7 @@ function Chat() {
           });
         }
         setMessages(loadedMessages);
+        localStorage.setItem('chatMessages', JSON.stringify(loadedMessages));
       }
     } catch (err) {
       console.error('Failed to fetch chat history:', err);
@@ -61,6 +74,10 @@ function Chat() {
     const token = localStorage.getItem('token');
     const userMessage = { role: 'user', content: input, timestamp: new Date().toISOString() };
     setMessages(prev => [...prev, userMessage]);
+    
+    // Save to localStorage immediately
+    localStorage.setItem('chatMessages', JSON.stringify([...messages, userMessage]));
+    
     const userInput = input;
     setInput('');
     setIsLoading(true);
@@ -106,6 +123,8 @@ function Chat() {
                     ...updated[updated.length - 1],
                     content: fullContent
                   };
+                  // Save to localStorage during streaming
+                  localStorage.setItem('chatMessages', JSON.stringify(updated));
                   return updated;
                 });
               }
@@ -117,6 +136,8 @@ function Chat() {
                     ...updated[updated.length - 1],
                     sources: data.sources
                   };
+                  // Save to localStorage when sources are added
+                  localStorage.setItem('chatMessages', JSON.stringify(updated));
                   return updated;
                 });
               }
@@ -128,6 +149,8 @@ function Chat() {
                     ...updated[updated.length - 1],
                     metrics: data.metrics
                   };
+                  // Save to localStorage when metrics are added
+                  localStorage.setItem('chatMessages', JSON.stringify(updated));
                   return updated;
                 });
               }
@@ -139,6 +162,8 @@ function Chat() {
                     ...updated[updated.length - 1],
                     content: `Error: ${data.error}`
                   };
+                  // Save to localStorage on error
+                  localStorage.setItem('chatMessages', JSON.stringify(updated));
                   return updated;
                 });
               }
@@ -155,11 +180,18 @@ function Chat() {
           ...updated[updated.length - 1],
           content: t('chat.connectionError')
         };
+        // Save to localStorage on error
+        localStorage.setItem('chatMessages', JSON.stringify(updated));
         return updated;
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    localStorage.removeItem('chatMessages');
   };
 
 
@@ -241,6 +273,14 @@ function Chat() {
                 </div>
               ) : (
                 <>
+                  <div className="flex justify-between items-center mb-4">
+                    <button
+                      onClick={clearChat}
+                      className="text-sm text-gray-400 hover:text-white transition"
+                    >
+                      Clear chat
+                    </button>
+                  </div>
                   {messages.map((msg, idx) => (
                     <ChatMessage
                       key={idx}
