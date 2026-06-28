@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 import tempfile
 import os
+from retry_utils import retry_with_logging
 
 
 class ProcessingStatus(str, Enum):
@@ -98,21 +99,31 @@ class AsyncProcessor:
             from audio_processor import AudioProcessorService
             from main import audio_processor
             
-            # Extract text
+            # Extract text with retry logic
             extractor = DocumentExtractor()
-            text = extractor.extract_text(task.file_path, task.file_type, audio_processor)
+            
+            @retry_with_logging(max_retries=2, initial_delay=1.0, backoff_factor=2.0, operation_name="Text extraction")
+            def extract_with_retry():
+                return extractor.extract_text(task.file_path, task.file_type, audio_processor)
+            
+            text = extract_with_retry()
             
             if not text:
-                raise RuntimeError("No text could be extracted from the document")
+                raise RuntimeError("No text could be extracted from the document. The file may be corrupted or contain no readable text.")
             
-            # Extract memories
+            # Extract memories with retry logic (CPU inference can be slow)
             if llm:
                 memory_extractor = MemoryExtractorService(llm)
-                memories = memory_extractor.extract_structured_memories(
-                    text,
-                    source_document=task.filename,
-                    max_memories=5
-                )
+                
+                @retry_with_logging(max_retries=3, initial_delay=2.0, backoff_factor=2.0, operation_name="Memory extraction")
+                def extract_memories_with_retry():
+                    return memory_extractor.extract_structured_memories(
+                        text,
+                        source_document=task.filename,
+                        max_memories=5
+                    )
+                
+                memories = extract_memories_with_retry()
                 
                 # Store memories in database
                 db = SessionLocal()
@@ -134,6 +145,9 @@ class AsyncProcessor:
                         'memories_count': len(memory_dicts),
                         'stored_in_db': True
                     }
+                except Exception as db_error:
+                    db.rollback()
+                    raise RuntimeError(f"Failed to store memories in database: {str(db_error)}")
                 finally:
                     db.close()
             else:
@@ -141,7 +155,8 @@ class AsyncProcessor:
                 task.result = {
                     'memories': memory_dicts,
                     'memories_count': 0,
-                    'stored_in_db': False
+                    'stored_in_db': False,
+                    'error': 'AI model not loaded'
                 }
             
             task.status = ProcessingStatus.COMPLETED
