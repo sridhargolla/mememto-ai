@@ -1,0 +1,49 @@
+# Version control ignores for memento-ai
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node.js
+**/node_modules/
+**/dist/
+**/.svelte-kit/
+**/.next/
+**/.nuxt/
+**/out/
+
+# Databases
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Environments / Secrets
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS Files
+.DS_Store
+Thumbs.db
