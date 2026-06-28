@@ -12,6 +12,7 @@ function Sidebar({ isOpen, onClose }) {
     { path: '/dashboard/memories', icon: '🧠', label: t('navigation.memories') },
     { path: '/dashboard/timeline', icon: '📅', label: t('navigation.timeline') },
     { path: '/dashboard/status', icon: '🖥️', label: 'System Status' },
+    { path: '/dashboard/performance', icon: '⚡', label: 'Performance' },
     { path: '/dashboard/privacy', icon: '🔒', label: t('navigation.privacy') },
     { path: '/dashboard/settings', icon: '⚙️', label: t('navigation.settings') },
   ];
