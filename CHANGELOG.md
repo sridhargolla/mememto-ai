@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2026-06-28
+
+### Added
+- **Backend**: FastAPI backend with llama.cpp integration for CPU-only AI inference
+- **Frontend**: React-based web interface with Vite
+- **Authentication**: JWT-based authentication system with user signup/login
+- **Document Processing**: Multi-format document ingestion (PDF, TXT, PNG, JPG, WAV, MP3)
+- **Memory Extraction**: Structured memory extraction with entity recognition
+- **Chat Interface**: Streaming chat with context-aware AI responses
+- **Hybrid Search**: Vector + keyword search for memory retrieval
+- **Multilingual Support**: Language detection and multilingual UI (English, Telugu, Hindi)
+- **AI Status Endpoint**: Real-time AI runtime status monitoring
+- **Reliability Features**:
+  - File size limits (25MB sync, 50MB async)
+  - Invalid file type handling
+  - Improved error messages
+  - Retry handling with exponential backoff
+  - Local caching for repeated queries
+  - Background processing for large documents
+- **PWA Support**: Progressive Web App with offline caching and installability
+- **Mobile App**: Flutter Android application with all core features
+- **CI/CD**: GitLab CI pipeline with automated quality checks
+- **Pre-commit Hooks**: Automated code quality checks before commits
+- **Documentation**: Comprehensive README, architecture docs, and contribution guidelines
+
+### Changed
+- **Backend**: Enhanced error handling and cleanup for temporary files
+- **Frontend**: Added system status component and improved UI
+- **Mobile**: Configured for APK generation with proper permissions
+
+### Security
+- **No Cloud APIs**: All AI processing is local and offline
+- **CPU-Only**: No GPU requirements, runs on standard CPUs
+- **Private Data**: All data stored locally, no external data transmission
+
+---
+
 ## [0.1.0] - 2026-06-28
 
 ### Added
@@ -18,3 +55,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Contribution Guidelines (`CONTRIBUTING.md`)**: Established commit conventions and branch-naming rules.
 - **Project License**: Added the GNU Affero General Public License v3.0 (`LICENSE`).
 - **Gitignore**: Implemented a root-level `.gitignore` file to prevent local models, virtual environments, node modules, and SQLite databases from being tracked.
+
