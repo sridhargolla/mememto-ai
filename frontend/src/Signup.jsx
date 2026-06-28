@@ -57,7 +57,7 @@ function Signup() {
   };
 
   return (
-    <BackgroundLayout image={backgroundImages.login}>
+    <BackgroundLayout image={backgroundImages.signup}>
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full">
           {/* Logo/Brand */}

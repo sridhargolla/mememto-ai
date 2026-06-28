@@ -2,8 +2,9 @@
 // These are high-quality placeholder URLs - replace with your own images if needed
 
 export const backgroundImages = {
-  landing: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=2832&auto=format&fit=crop', // AI assistant/neural connections for landing
-  login: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=2832&auto=format&fit=crop', // AI assistant/neural connections for login
+  landing: '/auth-bg.jpg', // Custom background for landing page
+  login: '/auth-bg.jpg', // Custom background for login page
+  signup: '/auth-bg.jpg', // Custom background for signup page
   dashboard: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=2832&auto=format&fit=crop', // Futuristic AI workspace
   chat: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=2832&auto=format&fit=crop', // AI assistant/neural connections
   documents: 'https://images.unsplash.com/photo-1555421689-d68471e189f2?q=80&w=2832&auto=format&fit=crop', // Digital documents/knowledge
