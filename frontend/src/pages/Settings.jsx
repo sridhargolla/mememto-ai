@@ -13,10 +13,17 @@ function Settings() {
     autoSave: true,
   });
   const [saving, setSaving] = useState(false);
+  const [aiStatus, setAiStatus] = useState(null);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
     setUser(userData);
+    
+    // Fetch AI status
+    fetch('http://localhost:8000/status')
+      .then(res => res.json())
+      .then(data => setAiStatus(data))
+      .catch(err => console.error('Failed to fetch AI status:', err));
   }, []);
 
   const handleSave = async () => {
@@ -169,6 +176,38 @@ function Settings() {
                   <p className="text-xs text-gray-500 mt-2">
                     {t('settings.deleteWarning')}
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Status */}
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span className="text-2xl">🤖</span>
+                AI Status
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-gray-400">AI Runtime</span>
+                  <span className="text-white font-medium">{aiStatus?.runtime || 'Loading...'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-gray-400">Device</span>
+                  <span className="text-white font-medium">{aiStatus?.device || 'Loading...'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-gray-400">Internet</span>
+                  <span className={`font-medium ${aiStatus?.offline ? 'text-green-400' : 'text-red-400'}`}>
+                    {aiStatus?.offline ? 'Offline' : 'Online'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-slate-700">
+                  <span className="text-gray-400">Model</span>
+                  <span className="text-white font-medium">{aiStatus?.model || 'Loading...'}</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-gray-400">External API Calls</span>
+                  <span className="text-green-400 font-medium">{aiStatus?.external_api_calls ?? 0}</span>
                 </div>
               </div>
             </div>

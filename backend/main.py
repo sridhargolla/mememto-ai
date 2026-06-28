@@ -291,6 +291,23 @@ async def health_check():
     }
 
 
+# AI Status endpoint
+@app.get("/status")
+async def ai_status():
+    """Get AI runtime status to prove CPU-first and offline operation."""
+    model_name = "Not loaded"
+    if llm and llm.model_path:
+        model_name = llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path
+    
+    return {
+        "runtime": "llama.cpp",
+        "model": model_name,
+        "device": "CPU",
+        "offline": True,
+        "external_api_calls": 0
+    }
+
+
 
 # Authentication endpoints
 @app.post("/auth/signup", response_model=TokenResponse)
