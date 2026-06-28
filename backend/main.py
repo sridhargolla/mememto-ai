@@ -218,6 +218,9 @@ class SystemStatus(BaseModel):
     external_api_calls: int
     documents_processed: int
     memories_created: int
+    gpu: str = "Disabled"
+    offline: bool = True
+
 
 
 class BenchmarkResult(BaseModel):
@@ -241,7 +244,13 @@ class TimelineItem(BaseModel):
 # Health endpoint
 @app.get("/health")
 async def health_check():
-    return {"status": "running"}
+    return {
+        "status": "running",
+        "ai_runtime": "llama.cpp",
+        "device": "CPU",
+        "offline": True
+    }
+
 
 
 # Authentication endpoints
@@ -352,11 +361,17 @@ async def get_current_user(
 
 # System status endpoint
 @app.get("/system/status", response_model=SystemStatus)
-async def system_status(db: Session = Depends(get_db)):
+async def system_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get real-time system status."""
     # Get counts from database
-    memories_count = db.query(Memory).count()
-    conversations_count = db.query(Conversation).count()
+    memories_count = db.query(Memory).filter(Memory.user_id == current_user.id).count()
+    conversations_count = db.query(Conversation).filter(Conversation.user_id == current_user.id).count()
+    
+    # Get distinct count of processed files for this user
+    documents_processed = db.query(Memory.source_file).distinct().filter(
+        Memory.user_id == current_user.id,
+        Memory.source_file.isnot(None)
+    ).count()
     
     # Get model name from environment or default
     model_name = os.getenv("MODEL_PATH", "./models/model.gguf")
@@ -366,13 +381,16 @@ async def system_status(db: Session = Depends(get_db)):
     return SystemStatus(
         ai_engine="llama.cpp",
         model=model_name,
-        inference="Local",
+        inference="Local (CPU)",
         database="SQLite",
         internet="Offline Mode",
         external_api_calls=0,
-        documents_processed=conversations_count,  # Approximate from conversations
-        memories_created=memories_count
+        documents_processed=documents_processed,
+        memories_created=memories_count,
+        gpu="Disabled",
+        offline=True
     )
+
 
 
 # Benchmark endpoint
@@ -456,18 +474,26 @@ async def chat(request: ChatRequest, current_user: User = Depends(get_current_us
     
     async def stream_response():
         try:
-            # Retrieve relevant memories using semantic RAG (filtered by user)
+            # Retrieve relevant memories using Hybrid Search (filtered by user)
             retriever = MemoryRetriever()
-            relevant_memories = retriever.retrieve_semantically(db, request.message, top_k=3, min_similarity=0.3, user_id=current_user.id)
+            relevant_memories = retriever.retrieve_hybrid(db, request.message, top_k=3, user_id=current_user.id)
             
             # Build context from retrieved memories
             context = retriever.format_context(relevant_memories)
+            
+            # Load conversation history (last 5 turns) for multi-turn conversational context
+            recent_convs = ConversationService.get_all_conversations(db, skip=0, limit=5, user_id=current_user.id)
+            recent_convs.reverse()  # chronological order
+            
+            history_str = ""
+            for conv in recent_convs:
+                history_str += f"User: {conv.question}\nAssistant: {conv.answer}\n"
             
             # Build structured source citations
             sources = []
             for memory, score in relevant_memories:
                 citation = SourceCitation(
-                    document=memory.source_document,
+                    document=memory.source_file,
                     memory=memory.title,
                     relevance_score=score
                 )
@@ -475,19 +501,28 @@ async def chat(request: ChatRequest, current_user: User = Depends(get_current_us
             
             # Generate response with or without context
             if context:
-                # Augment prompt with context
-                augmented_prompt = f"""Based on the following context information, answer the user's question.
+                # Augment prompt with context and history
+                augmented_prompt = f"""You are a helpful offline personal memory assistant. Answer the user's question based on the retrieved context below.
+If the answer cannot be found in the context, use your general knowledge but mention it is not in your personal memories.
 
-Context:
+Retrieved Context:
 {context}
 
+Recent Conversation History:
+{history_str}
 User question: {request.message}
 
 Answer:"""
                 stream = llm.generate_stream(augmented_prompt, max_tokens=512, temperature=0.7)
             else:
-                # No relevant memories found, use regular chat
-                chat_prompt = llm._build_chat_prompt(request.message)
+                # No relevant memories found, use chat history prompt
+                chat_prompt = f"""You are a helpful offline personal memory assistant.
+                
+Recent Conversation History:
+{history_str}
+User question: {request.message}
+
+Answer:"""
                 stream = llm.generate_stream(chat_prompt, max_tokens=512, temperature=0.7)
             
             # Stream tokens
@@ -496,17 +531,26 @@ Answer:"""
                 full_response += token
                 yield f"data: {json.dumps({'token': token})}\n\n"
             
-            # Send sources at the end
+            # Prepare performance metrics
+            metrics = {
+                "inference_time_seconds": round(llm.last_inference_time, 2),
+                "tokens_per_second": round(llm.last_tokens_per_second, 1),
+                "memory_usage_mb": round(SystemMonitor.get_memory_usage()['rss_mb'], 1),
+                "model": llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path
+            }
+            
+            # Send sources and metrics at the end
             sources_data = [s.dict() for s in sources]
-            yield f"data: {json.dumps({'sources': sources_data, 'done': True})}\n\n"
+            yield f"data: {json.dumps({'sources': sources_data, 'metrics': metrics, 'done': True})}\n\n"
             
             # Save conversation to database
-            ConversationService.create_conversation(db, request.message, full_response)
+            ConversationService.create_conversation(db, request.message, full_response, current_user.id)
             
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
     
     return StreamingResponse(stream_response(), media_type="text/event-stream")
+
 
 
 # Memory endpoints
@@ -641,6 +685,7 @@ async def get_task_status(task_id: str):
 @app.post("/upload", response_model=DocumentUploadResponse)
 async def upload_document(
     file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Upload and process a document to extract memories."""
@@ -680,7 +725,7 @@ async def upload_document(
         for memory_data in extracted_memories:
             # Use structured memory if available
             if 'structured_data' in memory_data and memory_data['structured_data']:
-                memory = MemoryService.create_structured_memory(db, memory_data['structured_data'])
+                memory = MemoryService.create_structured_memory(db, memory_data['structured_data'], current_user.id)
             else:
                 # Fallback to legacy format
                 memory = MemoryService.create_memory(
@@ -688,7 +733,8 @@ async def upload_document(
                     title=memory_data['title'],
                     content=memory_data['content'],
                     tags=memory_data['tags'],
-                    source_document=memory_data.get('source_document')
+                    source_document=memory_data.get('source_document'),
+                    user_id=current_user.id
                 )
             created_memories.append(memory)
         

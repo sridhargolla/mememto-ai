@@ -28,8 +28,8 @@ class MemoryService:
             content=content,
             tags=tags,
             embedding=embedding,
-            json_metadata=metadata,
-            source_document=source_document,
+            metadata_json=metadata,
+            source_file=source_document,
             user_id=user_id
         )
         db.add(memory)
@@ -99,13 +99,14 @@ class MemoryService:
         return False
 
     @staticmethod
-    def create_structured_memory(db: Session, memory_schema: MemorySchema) -> Memory:
+    def create_structured_memory(db: Session, memory_schema: MemorySchema, user_id: Optional[int] = None) -> Memory:
         """
         Create a new memory from a structured MemorySchema.
         
         Args:
             db: Database session
             memory_schema: MemorySchema object with structured data
+            user_id: Optional user ID to associate with the memory
         
         Returns:
             Created Memory object
@@ -120,20 +121,33 @@ class MemoryService:
             if embedding_array is not None:
                 embedding = embedding_service.serialize_embedding(embedding_array)
         
+        # Merge skills list into entities if present in the schema
+        skills_json = None
+        if memory_schema.skills:
+            skills_json = json.dumps(list(set(memory_schema.skills)))
+        elif memory_schema.entities.skills:
+            skills_json = json.dumps(memory_schema.entities.skills)
+            
+        # Get source document name
+        source_doc = memory_schema.source
+        if not source_doc and memory_schema.source_documents:
+            source_doc = memory_schema.source_documents[0]
+            
         memory = Memory(
             title=memory_schema.title,
             content=memory_schema.summary,
-            tags=memory_schema.type,
+            type=memory_schema.type,
             embedding=embedding,
-            metadata=memory_schema.to_metadata_json(),
-            source_document=memory_schema.source_documents[0] if memory_schema.source_documents else None,
-            memory_type=memory_schema.type,
+            metadata_json=memory_schema.to_metadata_json(),
+            source_file=source_doc,
+            language="en",
+            user_id=user_id,
             importance=memory_schema.importance,
             entities_people=json.dumps(memory_schema.entities.people) if memory_schema.entities.people else None,
             entities_organizations=json.dumps(memory_schema.entities.organizations) if memory_schema.entities.organizations else None,
             entities_locations=json.dumps(memory_schema.entities.locations) if memory_schema.entities.locations else None,
-            entities_skills=json.dumps(memory_schema.entities.skills) if memory_schema.entities.skills else None,
-            time_start=memory_schema.time.start,
+            entities_skills=skills_json,
+            time_start=memory_schema.time.start or memory_schema.duration,
             time_end=memory_schema.time.end,
             source_documents=json.dumps(memory_schema.source_documents) if memory_schema.source_documents else None
         )
@@ -142,6 +156,7 @@ class MemoryService:
         db.commit()
         db.refresh(memory)
         return memory
+
 
     @staticmethod
     def get_memories_by_type(db: Session, memory_type: str, skip: int = 0, limit: int = 100) -> List[Memory]:
@@ -214,11 +229,12 @@ class ConversationService:
     """Service layer for conversation operations."""
     
     @staticmethod
-    def create_conversation(db: Session, question: str, answer: str) -> Conversation:
+    def create_conversation(db: Session, question: str, answer: str, user_id: Optional[int] = None) -> Conversation:
         """Create a new conversation."""
         conversation = Conversation(
             question=question,
-            answer=answer
+            answer=answer,
+            user_id=user_id
         )
         db.add(conversation)
         db.commit()
@@ -231,9 +247,12 @@ class ConversationService:
         return db.query(Conversation).filter(Conversation.id == conversation_id).first()
 
     @staticmethod
-    def get_all_conversations(db: Session, skip: int = 0, limit: int = 100) -> List[Conversation]:
+    def get_all_conversations(db: Session, skip: int = 0, limit: int = 100, user_id: Optional[int] = None) -> List[Conversation]:
         """Get all conversations with pagination."""
-        return db.query(Conversation).order_by(Conversation.timestamp.desc()).offset(skip).limit(limit).all()
+        query = db.query(Conversation)
+        if user_id:
+            query = query.filter(Conversation.user_id == user_id)
+        return query.order_by(Conversation.timestamp.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
     def delete_conversation(db: Session, conversation_id: int) -> bool:
@@ -244,3 +263,4 @@ class ConversationService:
             db.commit()
             return True
         return False
+

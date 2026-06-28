@@ -26,20 +26,46 @@ class Memory(Base):
     __tablename__ = "memories"
     
     id = Column(Integer, primary_key=True, index=True)
+    type = Column(String(50), nullable=True, index=True)  # person, event, experience, project, skill, education, document
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
-    tags = Column(String(500))  # Comma-separated tags
+    tags = Column(String(500), nullable=True)  # Comma-separated tags
     embedding = Column(LargeBinary, nullable=True)  # Serialized numpy array
-    json_metadata = Column(Text, nullable=True)  # JSON metadata (full structured memory)
-    source_document = Column(String(500), nullable=True)  # Original document name
-    created_at = Column(DateTime, default=datetime.utcnow)
+    metadata_json = Column("metadata", Text, nullable=True)  # Mapped to 'metadata' column in SQLite
+    source_file = Column(String(500), nullable=True, index=True)  # Original document name
+    language = Column(String(50), nullable=True, default="en", index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
     
+    # Backward compatibility mappings
+    @property
+    def memory_type(self):
+        return self.type
+        
+    @memory_type.setter
+    def memory_type(self, value):
+        self.type = value
+
+    @property
+    def json_metadata(self):
+        return self.metadata_json
+
+    @json_metadata.setter
+    def json_metadata(self, value):
+        self.metadata_json = value
+
+    @property
+    def source_document(self):
+        return self.source_file
+
+    @source_document.setter
+    def source_document(self, value):
+        self.source_file = value
+
     # Relationship
     user = relationship("User", back_populates="memories")
     
-    # New structured memory fields
-    memory_type = Column(String(50), nullable=True, index=True)  # person, event, experience, etc.
+    # Extra structured memory fields for search/retrieval speed
     importance = Column(String(20), nullable=True, index=True)  # low, medium, high
     entities_people = Column(Text, nullable=True)  # JSON array of people
     entities_organizations = Column(Text, nullable=True)  # JSON array of organizations
@@ -49,11 +75,13 @@ class Memory(Base):
     time_end = Column(String(100), nullable=True)  # End time
     source_documents = Column(Text, nullable=True)  # JSON array of source documents
 
+
     # Indexes for performance
     __table_args__ = (
         Index('idx_memory_created_at', 'created_at'),
-        Index('idx_memory_source_document', 'source_document'),
+        Index('idx_memory_source_file', 'source_file'),
     )
+
 
 
 class Conversation(Base):

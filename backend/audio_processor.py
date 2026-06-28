@@ -1,8 +1,16 @@
 import os
 from typing import Optional
-from whisper_cpp import Whisper
+
+try:
+    from whisper_cpp import Whisper
+    WHISPER_AVAILABLE = True
+except ImportError:
+    Whisper = None
+    WHISPER_AVAILABLE = False
+
 from structured_memory_extractor import MemoryExtractorService
 from model_wrapper import LocalLLM
+
 
 
 class AudioProcessorService:
@@ -21,6 +29,10 @@ class AudioProcessorService:
     
     def _load_model(self):
         """Load the Whisper model."""
+        if not WHISPER_AVAILABLE:
+            print("Warning: whisper_cpp not installed. Audio transcription disabled.")
+            self.whisper_model = None
+            return
         try:
             self.whisper_model = Whisper(self.model_path)
             print(f"Whisper model loaded: {self.model_path}")

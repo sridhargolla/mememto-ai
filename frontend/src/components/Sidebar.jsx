@@ -11,6 +11,7 @@ function Sidebar({ isOpen, onClose }) {
     { path: '/dashboard/documents', icon: '📄', label: t('navigation.documents') },
     { path: '/dashboard/memories', icon: '🧠', label: t('navigation.memories') },
     { path: '/dashboard/timeline', icon: '📅', label: t('navigation.timeline') },
+    { path: '/dashboard/status', icon: '🖥️', label: 'System Status' },
     { path: '/dashboard/privacy', icon: '🔒', label: t('navigation.privacy') },
     { path: '/dashboard/settings', icon: '⚙️', label: t('navigation.settings') },
   ];
@@ -32,16 +33,23 @@ function Sidebar({ isOpen, onClose }) {
         } lg:translate-x-0 lg:static lg:z-0`}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-700">
-            <h1 className="text-xl font-bold text-white">Memento AI</h1>
-            <button
-              onClick={onClose}
-              className="lg:hidden text-gray-400 hover:text-white"
-            >
-              ✕
-            </button>
+          {/* Logo & Status Pill */}
+          <div className="flex flex-col p-6 border-b border-slate-700">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-white">Memento AI</h1>
+              <button
+                onClick={onClose}
+                className="lg:hidden text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-3 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 w-max flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Local CPU Mode</span>
+            </div>
           </div>
+
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2 overflow-y-auto">

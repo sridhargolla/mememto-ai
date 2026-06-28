@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import json
@@ -23,7 +23,7 @@ class MemorySchema(BaseModel):
     """Structured memory schema for intelligent memory extraction."""
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the memory")
-    type: str = Field(..., description="Type of memory: person, event, experience, project, education, skill, document")
+    type: str = Field(..., description="Type of memory: person, event, experience, project, education, skill, document, organization")
     title: str = Field(..., description="Brief title of the memory")
     summary: str = Field(..., description="Detailed summary of the memory content")
     entities: Entities = Field(default_factory=Entities, description="Extracted entities")
@@ -31,21 +31,30 @@ class MemorySchema(BaseModel):
     importance: str = Field(default="medium", description="Importance level: low, medium, high")
     source_documents: List[str] = Field(default_factory=list, description="Source document names or IDs")
     
-    @validator('type')
+    # Phase 2 MVP Specific Fields
+    organization: Optional[str] = Field(None, description="Organization name (for experience, project, education, etc.)")
+    duration: Optional[str] = Field(None, description="Duration or date range")
+    skills: Optional[List[str]] = Field(default_factory=list, description="List of skills associated")
+    projects: Optional[List[str]] = Field(default_factory=list, description="List of projects associated")
+    source: Optional[str] = Field(None, description="Source file name")
+    
+    @field_validator('type', mode='before')
+    @classmethod
     def validate_type(cls, v):
         """Validate memory type."""
-        valid_types = ['person', 'event', 'experience', 'project', 'education', 'skill', 'document']
-        if v not in valid_types:
+        valid_types = ['person', 'event', 'experience', 'project', 'education', 'skill', 'document', 'organization']
+        if str(v).lower() not in valid_types:
             raise ValueError(f"Invalid memory type. Must be one of: {', '.join(valid_types)}")
-        return v
+        return str(v).lower()
     
-    @validator('importance')
+    @field_validator('importance', mode='before')
+    @classmethod
     def validate_importance(cls, v):
         """Validate importance level."""
         valid_levels = ['low', 'medium', 'high']
-        if v not in valid_levels:
-            raise ValueError(f"Invalid importance level. Must be one of: {', '.join(valid_levels)}")
-        return v
+        if str(v).lower() not in valid_levels:
+            return 'medium'  # Default to medium instead of raising, for LLM output tolerance
+        return str(v).lower()
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -69,3 +78,4 @@ class MemorySchema(BaseModel):
     def to_metadata_json(self) -> str:
         """Convert to JSON for storage in metadata field (legacy compatibility)."""
         return self.json()
+

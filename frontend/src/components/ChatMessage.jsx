@@ -49,6 +49,17 @@ function ChatMessage({ message, isLast, isLoading }) {
                 </ul>
               </div>
             )}
+
+            {/* Performance Metrics */}
+            {message.metrics && (
+              <div className="mt-2 pt-2 border-t border-slate-600/40 text-[10px] text-gray-400 flex flex-wrap gap-x-3 gap-y-1 font-mono">
+                <span title="Inference Time">⏱️ {message.metrics.inference_time_seconds}s</span>
+                <span title="Generation Speed">⚡ {message.metrics.tokens_per_second} t/s</span>
+                <span title="RAM Usage">💾 {message.metrics.memory_usage_mb} MB</span>
+                <span title="Active Model" className="opacity-60">🤖 {message.metrics.model}</span>
+              </div>
+            )}
+
           </div>
 
           {/* Timestamp */}

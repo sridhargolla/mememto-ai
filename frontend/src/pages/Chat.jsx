@@ -18,8 +18,42 @@ function Chat() {
   };
 
   useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  const fetchHistory = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch('http://localhost:8000/conversations?limit=20', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Convert database conversations to message objects (sorted chronologically)
+        const loadedMessages = [];
+        const sorted = [...data].reverse();
+        for (const conv of sorted) {
+          loadedMessages.push({
+            role: 'user',
+            content: conv.question,
+            timestamp: conv.timestamp
+          });
+          loadedMessages.push({
+            role: 'assistant',
+            content: conv.answer,
+            timestamp: conv.timestamp
+          });
+        }
+        setMessages(loadedMessages);
+      }
+    } catch (err) {
+      console.error('Failed to fetch chat history:', err);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -61,36 +95,55 @@ function Chat() {
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = JSON.parse(line.slice(6));
-            
-            if (data.token) {
-              fullContent += data.token;
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  ...updated[updated.length - 1],
-                  content: fullContent
-                };
-                return updated;
-              });
-            } else if (data.sources) {
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  ...updated[updated.length - 1],
-                  sources: data.sources
-                };
-                return updated;
-              });
-            } else if (data.error) {
-              setMessages(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1] = {
-                  ...updated[updated.length - 1],
-                  content: `Error: ${data.error}`
-                };
-                return updated;
-              });
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.token) {
+                fullContent += data.token;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    ...updated[updated.length - 1],
+                    content: fullContent
+                  };
+                  return updated;
+                });
+              }
+              
+              if (data.sources) {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    ...updated[updated.length - 1],
+                    sources: data.sources
+                  };
+                  return updated;
+                });
+              }
+              
+              if (data.metrics) {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    ...updated[updated.length - 1],
+                    metrics: data.metrics
+                  };
+                  return updated;
+                });
+              }
+              
+              if (data.error) {
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = {
+                    ...updated[updated.length - 1],
+                    content: `Error: ${data.error}`
+                  };
+                  return updated;
+                });
+              }
+            } catch (e) {
+              // Ignore partial JSON chunks during streaming
             }
           }
         }
@@ -108,6 +161,7 @@ function Chat() {
       setIsLoading(false);
     }
   };
+
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];

@@ -11,8 +11,10 @@ import Memories from './pages/Memories'
 import Timeline from './Timeline'
 import Privacy from './pages/Privacy'
 import Settings from './pages/Settings'
+import SystemStatus from './SystemStatus'
 import './i18n'
 import './App.css'
+
 
 function ChatInterface() {
   const [messages, setMessages] = useState([])
@@ -332,7 +334,16 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/dashboard/status" 
+            element={
+              <ProtectedRoute>
+                <SystemStatus />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
+
       </Router>
     </AuthProvider>
   )

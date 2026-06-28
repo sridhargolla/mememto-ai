@@ -13,6 +13,7 @@ function Dashboard() {
     memories: 0,
     conversations: 0,
   });
+  const [systemStatus, setSystemStatus] = useState(null);
   const [recentMemories, setRecentMemories] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,9 +32,10 @@ function Dashboard() {
       
       if (statusResponse.ok) {
         const statusData = await statusResponse.json();
+        setSystemStatus(statusData);
         setStats({
-          documents: statusData.documents_count || 0,
-          memories: statusData.memories_count || 0,
+          documents: statusData.documents_processed || 0,
+          memories: statusData.memories_created || 0,
           conversations: statusData.conversations_count || 0,
         });
       }
@@ -53,6 +55,7 @@ function Dashboard() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-slate-900 flex">
@@ -135,28 +138,69 @@ function Dashboard() {
                 )}
               </div>
 
-              {/* System Status Preview */}
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h3 className="text-lg font-semibold text-white mb-4">{t('dashboard.systemStatus')}</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">{t('dashboard.aiModelReady')}</span>
+              {/* System Telemetry & Offline Status Panels */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Offline Status Panel */}
+                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    🔒 Memento AI Offline Status
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-gray-400">Internet Connection</span>
+                      <span className="px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full text-xs font-semibold">
+                        OFFLINE
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-gray-400">AI Runtime</span>
+                      <span className="text-white font-medium">{systemStatus?.ai_engine || 'llama.cpp'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-gray-400">Device</span>
+                      <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs font-semibold">
+                        {systemStatus?.inference || 'Local (CPU)'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-gray-400">External Cloud API Calls</span>
+                      <span className="text-white font-semibold">0</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-400">Database</span>
+                      <span className="text-white font-medium">{systemStatus?.database || 'SQLite'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">{t('dashboard.databaseConnected')}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">{t('dashboard.statusOffline')}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-gray-300">{t('dashboard.privacyLocal')}</span>
+                </div>
+
+                {/* Performance Monitoring Panel */}
+                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    📊 CPU Performance Metrics
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-gray-400">Active Model</span>
+                      <span className="text-purple-400 font-medium truncate max-w-[200px]" title={systemStatus?.model}>
+                        {systemStatus?.model || 'Qwen2.5 GGUF'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-gray-400">GPU Offloading</span>
+                      <span className="text-gray-400 font-medium">{systemStatus?.gpu || 'Disabled'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-gray-400">Documents Processed</span>
+                      <span className="text-white font-semibold">{systemStatus?.documents_processed || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-400">Memories Created</span>
+                      <span className="text-white font-semibold">{systemStatus?.memories_created || 0}</span>
+                    </div>
                   </div>
                 </div>
               </div>
+
             </div>
           )}
         </main>

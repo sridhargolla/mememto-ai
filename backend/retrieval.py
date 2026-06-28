@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from models import Memory
 from sqlalchemy.orm import Session
 from embedding_service import EmbeddingService
@@ -180,3 +180,54 @@ class MemoryRetriever:
         # Sort by similarity descending and return top_k
         scored_memories.sort(key=lambda x: x[1], reverse=True)
         return scored_memories[:top_k]
+
+    @staticmethod
+    def retrieve_hybrid(db: Session, query: str, top_k: int = 3, user_id: Optional[int] = None) -> List[Tuple[Memory, float]]:
+        """
+        Retrieve memories using a hybrid approach combining semantic and keyword search.
+        
+        Args:
+            db: Database session
+            query: User query
+            top_k: Number of top memories to retrieve
+            user_id: Optional user ID to filter memories
+        
+        Returns:
+            List of (memory, hybrid_score) tuples sorted by score
+        """
+        # Get semantic results (wider net)
+        semantic_results = []
+        try:
+            semantic_results = MemoryRetriever.retrieve_semantically(db, query, top_k=top_k * 3, min_similarity=0.15, user_id=user_id)
+        except Exception as e:
+            print(f"Semantic retrieval failed: {e}")
+            
+        # Get keyword results (wider net)
+        keyword_results = []
+        try:
+            keyword_results = MemoryRetriever.retrieve_memories(db, query, top_k=top_k * 3, min_score=0.05, user_id=user_id)
+        except Exception as e:
+            print(f"Keyword retrieval failed: {e}")
+
+        # Combine scores
+        scores = {}
+        
+        for memory, score in semantic_results:
+            scores[memory.id] = {"memory": memory, "semantic": score, "keyword": 0.0}
+            
+        for memory, score in keyword_results:
+            if memory.id in scores:
+                scores[memory.id]["keyword"] = score
+            else:
+                scores[memory.id] = {"memory": memory, "semantic": 0.0, "keyword": score}
+                
+        # Calculate weighted sum (70% semantic, 30% keyword)
+        scored_memories = []
+        for memory_id, data in scores.items():
+            hybrid_score = 0.7 * data["semantic"] + 0.3 * data["keyword"]
+            scored_memories.append((data["memory"], hybrid_score))
+            
+        # Sort by score descending and return top_k
+        scored_memories.sort(key=lambda x: x[1], reverse=True)
+        return scored_memories[:top_k]
+

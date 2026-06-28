@@ -1,59 +1,99 @@
 import os
+import re
+import io
 import fitz  # PyMuPDF
 from PIL import Image
 import pytesseract
 from typing import Optional
-import tempfile
-from structured_memory_extractor import MemoryExtractorService
+from memory_extractor_service import MemoryExtractorService
 from audio_processor import AudioProcessorService
 
 
 class DocumentExtractor:
-    """Extract text from various document formats."""
+    """Extract and normalize text from various document formats with robust error handling."""
     
     @staticmethod
+    def normalize_text(text: str) -> str:
+        """Normalize extracted text: clean up whitespace, line endings, and control characters."""
+        if not text:
+            return ""
+        # Replace carriage returns
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        # Remove non-printable control characters but keep standard whitespace/newlines
+        text = re.sub(r'[^\x09\x0A\x0D\x20-\x7E\u00A0-\uD7FF\uE000-\uFFFF]', '', text)
+        # Replace multiple spaces/tabs with a single space
+        text = re.sub(r'[ \t]+', ' ', text)
+        # Normalize paragraph spacing (maximum 2 consecutive newlines)
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        return text.strip()
+
+    @staticmethod
     def extract_text_from_pdf(file_path: str) -> str:
-        """Extract text from PDF file using PyMuPDF."""
+        """Extract text from PDF file using PyMuPDF, falling back to OCR for scanned pages."""
         text = ""
+        doc = None
         try:
             doc = fitz.open(file_path)
-            for page in doc:
-                text += page.get_text()
-            doc.close()
-            return text.strip()
+            for page_num, page in enumerate(doc):
+                page_text = page.get_text()
+                
+                # If page contains little to no digital text, attempt OCR
+                if len(page_text.strip()) < 50:
+                    try:
+                        # Render page to image at 150 DPI for OCR
+                        pix = page.get_pixmap(dpi=150)
+                        img_data = pix.tobytes("png")
+                        img = Image.open(io.BytesIO(img_data))
+                        ocr_text = pytesseract.image_to_string(img)
+                        if ocr_text.strip():
+                            page_text = ocr_text
+                    except Exception as ocr_err:
+                        print(f"OCR failed on PDF page {page_num}: {ocr_err}")
+                
+                text += page_text + "\n"
+                
+            return DocumentExtractor.normalize_text(text)
         except Exception as e:
-            raise RuntimeError(f"Failed to extract text from PDF: {e}")
+            raise RuntimeError(f"Failed to extract text from PDF: {str(e)}")
+        finally:
+            if doc:
+                try:
+                    doc.close()
+                except:
+                    pass
     
     @staticmethod
     def extract_text_from_txt(file_path: str) -> str:
-        """Extract text from TXT file."""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except UnicodeDecodeError:
-            # Try with different encoding
+        """Extract text from TXT file with encoding detection fallback."""
+        encodings = ['utf-8', 'latin-1', 'cp1252', 'utf-16']
+        for encoding in encodings:
             try:
-                with open(file_path, 'r', encoding='latin-1') as f:
-                    return f.read()
+                with open(file_path, 'r', encoding=encoding) as f:
+                    text = f.read()
+                return DocumentExtractor.normalize_text(text)
+            except UnicodeDecodeError:
+                continue
             except Exception as e:
-                raise RuntimeError(f"Failed to read TXT file: {e}")
-        except Exception as e:
-            raise RuntimeError(f"Failed to read TXT file: {e}")
+                raise RuntimeError(f"Failed to read TXT file: {str(e)}")
+        
+        raise RuntimeError("Failed to decode TXT file with any supported encoding.")
     
     @staticmethod
     def extract_text_from_image(file_path: str) -> str:
         """Extract text from image file using Tesseract OCR."""
         try:
-            image = Image.open(file_path)
-            text = pytesseract.image_to_string(image)
-            return text.strip()
+            # Prevent decompression bomb errors on large images
+            Image.MAX_IMAGE_PIXELS = None 
+            with Image.open(file_path) as image:
+                text = pytesseract.image_to_string(image)
+            return DocumentExtractor.normalize_text(text)
         except Exception as e:
-            raise RuntimeError(f"Failed to extract text from image: {e}")
+            raise RuntimeError(f"Failed to extract text from image: {str(e)}")
     
     @staticmethod
     def extract_text(file_path: str, file_type: str, audio_processor: Optional[AudioProcessorService] = None) -> str:
         """
-        Extract text from a file based on its type.
+        Extract text from a file based on its type with graceful error handling.
         
         Args:
             file_path: Path to the file
@@ -61,26 +101,38 @@ class DocumentExtractor:
             audio_processor: AudioProcessorService for audio transcription
         
         Returns:
-            Extracted text
+            Extracted and normalized text
         """
         file_typelower = file_type.lower()
         
-        if file_typelower == 'pdf':
-            return DocumentExtractor.extract_text_from_pdf(file_path)
-        elif file_typelower == 'txt':
-            return DocumentExtractor.extract_text_from_txt(file_path)
-        elif file_typelower in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']:
-            return DocumentExtractor.extract_text_from_image(file_path)
-        elif file_typelower in ['wav', 'mp3']:
-            if audio_processor is None:
-                raise RuntimeError("Audio processor required for audio transcription")
-            return audio_processor.transcribe_audio(file_path)
-        else:
-            raise ValueError(f"Unsupported file type: {file_type}")
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+            
+        # Limit file size processing on CPU to avoid hanging (e.g., max 50MB for docs, 100MB for audio)
+        file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+        if file_typelower in ['pdf', 'txt', 'png', 'jpg', 'jpeg'] and file_size_mb > 50:
+            raise ValueError(f"File size ({file_size_mb:.1f}MB) exceeds the 50MB CPU processing limit.")
+        
+        try:
+            if file_typelower == 'pdf':
+                return DocumentExtractor.extract_text_from_pdf(file_path)
+            elif file_typelower == 'txt':
+                return DocumentExtractor.extract_text_from_txt(file_path)
+            elif file_typelower in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']:
+                return DocumentExtractor.extract_text_from_image(file_path)
+            elif file_typelower in ['wav', 'mp3']:
+                if audio_processor is None:
+                    raise RuntimeError("Audio processor required for audio transcription")
+                return audio_processor.transcribe_audio(file_path)
+            else:
+                raise ValueError(f"Unsupported file type: {file_type}")
+        except Exception as e:
+            print(f"Extraction error for {file_path} ({file_type}): {e}")
+            raise e
 
 
 class MemoryExtractor:
-    """Extract memories from document text using local LLM (legacy wrapper)."""
+    """Extract memories from document text using local LLM."""
     
     def __init__(self, llm):
         """
@@ -94,7 +146,7 @@ class MemoryExtractor:
     
     def extract_memories(self, text: str, source_document: str = None, max_memories: int = 5) -> list:
         """
-        Extract key memories from document text using structured extraction.
+        Extract key memories from document text.
         
         Args:
             text: Document text
@@ -104,18 +156,18 @@ class MemoryExtractor:
         Returns:
             List of extracted memories (title, content, tags, source_document)
         """
-        if not text or len(text) < 50:
+        if not text or len(text.strip()) < 20:
             return []
         
         try:
-            # Use the new structured extractor
-            structured_memories = self.structured_extractor.extract_structured_memories(
+            # Use the consolidated structured extractor
+            structured_memories = self.structured_extractor.extract_memories(
                 text, 
                 source_document, 
                 max_memories
             )
             
-            # Convert to legacy format for backward compatibility
+            # Convert to list format for backward compatibility
             memories = []
             for memory_schema in structured_memories:
                 memories.append({
