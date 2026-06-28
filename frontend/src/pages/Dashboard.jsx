@@ -26,7 +26,7 @@ function Dashboard() {
     
     try {
       // Fetch statistics
-      const statusResponse = await fetch('http://localhost:8000/system/status', {
+      const statusResponse = await fetch('/api/system/status', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -41,7 +41,7 @@ function Dashboard() {
       }
 
       // Fetch recent memories
-      const memoriesResponse = await fetch('http://localhost:8000/memories?limit=5', {
+      const memoriesResponse = await fetch('/api/memories?limit=5', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -58,7 +58,7 @@ function Dashboard() {
 
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col lg:ml-64">
@@ -70,10 +70,16 @@ function Dashboard() {
         <main className="flex-1 p-6 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-white">{t('common.loading')}</div>
+              <div className="text-white animate-pulse">{t('common.loading')}</div>
             </div>
           ) : (
             <div className="max-w-7xl mx-auto space-y-8">
+              {/* Welcome Message */}
+              <div className="glass-card-dark p-6 animate-fade-in">
+                <h1 className="text-3xl font-bold text-white mb-2">Welcome back!</h1>
+                <p className="text-gray-400">Your personal AI memory assistant is ready to help.</p>
+              </div>
+
               {/* Statistics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <StatisticsCard
@@ -100,22 +106,22 @@ function Dashboard() {
               </div>
 
               {/* Quick Actions */}
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+              <div className="glass-card-dark p-6 animate-fade-in">
                 <h3 className="text-lg font-semibold text-white mb-4">{t('dashboard.quickActions')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <button className="p-4 bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-400 hover:bg-purple-600/30 transition flex items-center gap-3">
+                  <button className="premium-card p-4 bg-purple-600/20 border border-purple-500/30 rounded-lg text-purple-400 hover:bg-purple-600/30 transition flex items-center gap-3 btn-premium">
                     <span className="text-2xl">📄</span>
                     <span className="font-medium">{t('dashboard.uploadDocument')}</span>
                   </button>
-                  <button className="p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-600/30 transition flex items-center gap-3">
+                  <button className="premium-card p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-600/30 transition flex items-center gap-3 btn-premium">
                     <span className="text-2xl">💬</span>
                     <span className="font-medium">{t('dashboard.startChat')}</span>
                   </button>
-                  <button className="p-4 bg-green-600/20 border border-green-500/30 rounded-lg text-green-400 hover:bg-green-600/30 transition flex items-center gap-3">
+                  <button className="premium-card p-4 bg-green-600/20 border border-green-500/30 rounded-lg text-green-400 hover:bg-green-600/30 transition flex items-center gap-3 btn-premium">
                     <span className="text-2xl">🧠</span>
                     <span className="font-medium">{t('dashboard.addMemory')}</span>
                   </button>
-                  <button className="p-4 bg-orange-600/20 border border-orange-500/30 rounded-lg text-orange-400 hover:bg-orange-600/30 transition flex items-center gap-3">
+                  <button className="premium-card p-4 bg-orange-600/20 border border-orange-500/30 rounded-lg text-orange-400 hover:bg-orange-600/30 transition flex items-center gap-3 btn-premium">
                     <span className="text-2xl">📅</span>
                     <span className="font-medium">{t('dashboard.viewTimeline')}</span>
                   </button>
@@ -123,7 +129,7 @@ function Dashboard() {
               </div>
 
               {/* Recent Memories */}
-              <div>
+              <div className="animate-fade-in">
                 <h3 className="text-lg font-semibold text-white mb-4">{t('dashboard.recentMemories')}</h3>
                 {recentMemories.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -132,16 +138,16 @@ function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
+                  <div className="glass-card-dark p-8 text-center">
                     <p className="text-gray-400">{t('dashboard.noMemories')}</p>
                   </div>
                 )}
               </div>
 
               {/* System Telemetry & Offline Status Panels */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
                 {/* Offline Status Panel */}
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="glass-card-dark p-6">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     🔒 Memento AI Offline Status
                   </h3>
@@ -174,7 +180,7 @@ function Dashboard() {
                 </div>
 
                 {/* Performance Monitoring Panel */}
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <div className="glass-card-dark p-6">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     📊 CPU Performance Metrics
                   </h3>

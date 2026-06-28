@@ -18,7 +18,7 @@ function Navbar({ onMenuClick, title }) {
   };
 
   return (
-    <header className="bg-slate-800 border-b border-slate-700 px-4 lg:px-6 py-4">
+    <header className="glass-card-dark border-b border-slate-700/50 px-4 lg:px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* Mobile menu button */}
@@ -26,7 +26,7 @@ function Navbar({ onMenuClick, title }) {
             onClick={onMenuClick}
             className="lg:hidden p-2 text-gray-400 hover:text-white transition"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0  24 24">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -41,7 +41,7 @@ function Navbar({ onMenuClick, title }) {
           <select
             value={i18n.language}
             onChange={(e) => handleLanguageChange(e.target.value)}
-            className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="px-3 py-2 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 backdrop-blur-sm"
           >
             <option value="en">{t('language.english')}</option>
             <option value="te">{t('language.telugu')}</option>
@@ -62,7 +62,7 @@ function Navbar({ onMenuClick, title }) {
           {/* Logout button */}
           <button
             onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+            className="premium-card px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition btn-premium"
           >
             {t('common.logout')}
           </button>

@@ -20,7 +20,7 @@ function Memories() {
     const token = localStorage.getItem('token');
     
     try {
-      let url = 'http://localhost:8000/memories';
+      let url = '/api/memories';
       if (filter !== 'all') {
         url += `/type/${filter}`;
       }
@@ -46,7 +46,7 @@ function Memories() {
     if (!confirm(t('memories.deleteConfirm'))) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/memories/${memoryId}`, {
+      const response = await fetch(`/api/memories/${memoryId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -54,10 +54,12 @@ function Memories() {
       if (response.ok) {
         await fetchMemories();
       } else {
-        alert(t('memories.deleteFailed'));
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Delete failed: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      alert(t('memories.connectionError'));
+      console.error('Delete error:', error);
+      alert('Connection error. Please check your network.');
     }
   };
 
@@ -72,7 +74,7 @@ function Memories() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col lg:ml-64">
@@ -81,7 +83,7 @@ function Memories() {
         <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Filters and Search */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+            <div className="glass-card-dark p-6 animate-fade-in">
               <div className="flex flex-col md:flex-row gap-4">
                 {/* Search */}
                 <div className="flex-1">
@@ -90,7 +92,7 @@ function Memories() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={t('memories.searchPlaceholder')}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 backdrop-blur-sm"
                   />
                 </div>
                 
@@ -98,7 +100,7 @@ function Memories() {
                 <select
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 backdrop-blur-sm"
                 >
                   <option value="all">{t('memories.filterAll')}</option>
                   <option value="person">{t('memories.filterPeople')}</option>
@@ -115,7 +117,7 @@ function Memories() {
             {/* Memories Grid */}
             {loading ? (
               <div className="flex items-center justify-center h-64">
-                <div className="text-white">{t('common.loading')}</div>
+                <div className="text-white animate-pulse">{t('common.loading')}</div>
               </div>
             ) : filteredMemories.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -124,8 +126,8 @@ function Memories() {
                 ))}
               </div>
             ) : (
-              <div className="bg-slate-800 rounded-xl p-12 border border-slate-700 text-center">
-                <div className="text-6xl mb-4">🧠</div>
+              <div className="glass-card-dark p-12 text-center animate-fade-in">
+                <div className="text-6xl mb-4 animate-float">🧠</div>
                 <h3 className="text-xl font-semibold text-white mb-2">
                   {search ? t('memories.noMemoriesFound') : t('memories.noMemories')}
                 </h3>

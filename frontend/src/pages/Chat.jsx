@@ -28,7 +28,7 @@ function Chat() {
   const fetchHistory = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('http://localhost:8000/conversations?limit=20', {
+      const response = await fetch('/api/conversations?limit=20', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (response.ok) {
@@ -69,7 +69,7 @@ function Chat() {
     setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -174,7 +174,7 @@ function Chat() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -209,7 +209,7 @@ function Chat() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col lg:ml-64">
@@ -220,20 +220,20 @@ function Chat() {
           <div className="flex-1 overflow-y-auto p-6">
             <div className="max-w-4xl mx-auto">
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center py-20">
-                  <div className="text-6xl mb-4">💬</div>
+                <div className="flex flex-col items-center justify-center h-full text-center py-20 animate-fade-in">
+                  <div className="text-6xl mb-4 animate-float">💬</div>
                   <h2 className="text-2xl font-semibold text-white mb-2">{t('chat.startConversation')}</h2>
                   <p className="text-gray-400 mb-6">{t('chat.description')}</p>
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 flex-wrap justify-center">
                     <button
                       onClick={() => setInput('What are my recent memories?')}
-                      className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-gray-300 hover:border-purple-500/50 transition"
+                      className="premium-card px-4 py-2 glass-card-dark border border-purple-500/30 rounded-lg text-gray-300 hover:border-purple-500/50 transition"
                     >
                       {t('chat.recentMemories')}
                     </button>
                     <button
                       onClick={() => setInput('Summarize my documents')}
-                      className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-gray-300 hover:border-purple-500/50 transition"
+                      className="premium-card px-4 py-2 glass-card-dark border border-blue-500/30 rounded-lg text-gray-300 hover:border-blue-500/50 transition"
                     >
                       {t('chat.summarizeDocuments')}
                     </button>
@@ -256,7 +256,7 @@ function Chat() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-slate-700 p-4 bg-slate-800">
+          <div className="border-t border-slate-700/50 p-4 glass-card-dark">
             <div className="max-w-4xl mx-auto flex gap-4">
               <div className="flex-1 flex gap-3">
                 <input
@@ -268,7 +268,7 @@ function Chat() {
                 />
                 <label
                   htmlFor="file-upload"
-                  className={`px-4 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition cursor-pointer flex items-center gap-2 ${
+                  className={`premium-card px-4 py-3 bg-slate-700/50 border border-slate-600/50 text-white rounded-lg hover:bg-slate-600/50 transition cursor-pointer flex items-center gap-2 btn-premium ${
                     uploading || isLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
@@ -282,13 +282,13 @@ function Chat() {
                   onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                   placeholder={t('chat.placeholder')}
                   disabled={isLoading}
-                  className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent disabled:opacity-50 backdrop-blur-sm"
                 />
               </div>
               <button
                 onClick={sendMessage}
                 disabled={isLoading || !input.trim()}
-                className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="premium-card px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 btn-premium animate-glow"
               >
                 <span>{t('chat.send')}</span>
                 <span className="text-xl">➤</span>

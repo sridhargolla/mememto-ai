@@ -48,7 +48,7 @@ function Timeline() {
   const fetchMemories = async () => {
     const token = localStorage.getItem('token')
     try {
-      const response = await fetch('http://localhost:8000/memories?limit=100', {
+      const response = await fetch('/api/memories?limit=100', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -93,12 +93,12 @@ function Timeline() {
   const sortedYears = Object.keys(groupedByYear).sort((a, b) => b - a)
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         {/* Header */}
-        <header className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center gap-4">
+        <header className="glass-card-dark border-b border-slate-700/50 px-6 py-4 flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-gray-400 hover:text-white"
@@ -113,7 +113,7 @@ function Timeline() {
           </div>
           <button
             onClick={fetchMemories}
-            className="ml-auto text-sm px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-gray-300 rounded-lg transition-colors"
+            className="ml-auto text-sm px-3 py-1.5 bg-slate-700/50 hover:bg-slate-600/50 text-gray-300 rounded-lg transition-colors btn-premium"
           >
             🔄 Refresh
           </button>
@@ -130,11 +130,11 @@ function Timeline() {
 
           {/* Error */}
           {error && !loading && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+            <div className="glass-card-dark border border-red-500/30 rounded-xl p-6 text-center animate-fade-in">
               <p className="text-red-400 font-semibold text-lg">⚠️ {error}</p>
               <button
                 onClick={fetchMemories}
-                className="mt-3 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm transition-colors"
+                className="mt-3 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm transition-colors btn-premium"
               >
                 Try again
               </button>
@@ -143,8 +143,8 @@ function Timeline() {
 
           {/* Empty state */}
           {!loading && !error && memories.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <div className="text-6xl mb-4">📅</div>
+            <div className="flex flex-col items-center justify-center h-64 text-center animate-fade-in">
+              <div className="text-6xl mb-4 animate-float">📅</div>
               <h2 className="text-xl font-semibold text-white mb-2">No memories yet</h2>
               <p className="text-gray-400 max-w-sm">
                 Upload documents in the Documents section and Memento AI will extract memories to build your timeline.
@@ -155,15 +155,15 @@ function Timeline() {
           {/* Filter tabs */}
           {!loading && !error && memories.length > 0 && (
             <>
-              <div className="flex flex-wrap gap-2 mb-8">
+              <div className="flex flex-wrap gap-2 mb-8 animate-fade-in">
                 {types.map(type => (
                   <button
                     key={type}
                     onClick={() => setFilter(type)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium capitalize transition-colors border ${
+                    className={`premium-card px-3 py-1.5 rounded-full text-sm font-medium capitalize transition-colors border ${
                       filter === type
                         ? 'bg-purple-600 border-purple-500 text-white'
-                        : 'bg-slate-800 border-slate-600 text-gray-400 hover:text-white hover:border-slate-500'
+                        : 'glass-card-dark border-slate-600 text-gray-400 hover:text-white hover:border-slate-500'
                     }`}
                   >
                     {TYPE_ICONS[type] || '📌'} {type}
@@ -179,19 +179,19 @@ function Timeline() {
               )}
 
               {/* Timeline */}
-              <div className="relative">
+              <div className="relative animate-fade-in">
                 {/* Vertical line */}
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-slate-700" />
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-slate-700/50" />
 
                 <div className="space-y-12">
                   {sortedYears.map(year => (
                     <div key={year}>
                       {/* Year marker */}
                       <div className="relative flex items-center mb-6">
-                        <div className="absolute left-0 w-12 h-12 flex items-center justify-center bg-slate-700 border-2 border-purple-500 rounded-full z-10">
+                        <div className="absolute left-0 w-12 h-12 flex items-center justify-center glass-card-dark border-2 border-purple-500 rounded-full z-10">
                           <span className="text-purple-300 text-xs font-bold">{year}</span>
                         </div>
-                        <div className="ml-16 h-0.5 flex-1 bg-slate-700" />
+                        <div className="ml-16 h-0.5 flex-1 bg-slate-700/50" />
                       </div>
 
                       {/* Items for this year */}
@@ -207,7 +207,7 @@ function Timeline() {
                               <div className={`absolute -left-10 mt-1 w-4 h-4 rounded-full ${dotColor} border-2 border-slate-900 z-10 flex-shrink-0`} />
 
                               {/* Card */}
-                              <div className="flex-1 bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-slate-500 transition-colors group">
+                              <div className="flex-1 glass-card-dark rounded-xl p-5 border border-slate-700/50 hover:border-slate-500 transition-colors group premium-card">
                                 <div className="flex items-start justify-between gap-3 mb-2">
                                   <div className="flex items-center gap-2">
                                     <span className={`text-xs px-2 py-0.5 rounded-full border capitalize ${typeColor}`}>
@@ -235,12 +235,12 @@ function Timeline() {
                                 {(memory.entities_skills || memory.entities_organizations) && (
                                   <div className="flex flex-wrap gap-1.5 mt-3">
                                     {memory.entities_organizations && JSON.parse(memory.entities_organizations || '[]').slice(0, 2).map((org, i) => (
-                                      <span key={i} className="text-xs px-2 py-0.5 bg-slate-700 text-gray-300 rounded-full">
+                                      <span key={i} className="text-xs px-2 py-0.5 bg-slate-700/50 text-gray-300 rounded-full">
                                         🏢 {org}
                                       </span>
                                     ))}
                                     {memory.entities_skills && JSON.parse(memory.entities_skills || '[]').slice(0, 3).map((skill, i) => (
-                                      <span key={i} className="text-xs px-2 py-0.5 bg-slate-700 text-yellow-300 rounded-full">
+                                      <span key={i} className="text-xs px-2 py-0.5 bg-slate-700/50 text-yellow-300 rounded-full">
                                         💡 {skill}
                                       </span>
                                     ))}

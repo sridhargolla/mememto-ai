@@ -29,13 +29,13 @@ function Sidebar({ isOpen, onClose }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full w-64 bg-slate-800 border-r border-slate-700 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 z-50 h-full w-64 glass-card-dark border-r border-slate-700/50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0 lg:static lg:z-0`}
       >
         <div className="flex flex-col h-full">
           {/* Logo & Status Pill */}
-          <div className="flex flex-col p-6 border-b border-slate-700">
+          <div className="flex flex-col p-6 border-b border-slate-700/50">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold text-white">Memento AI</h1>
               <button
@@ -61,10 +61,10 @@ function Sidebar({ isOpen, onClose }) {
                   key={item.path}
                   to={item.path}
                   onClick={() => onClose()}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                  className={`premium-card flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-purple-600 text-white shadow-lg'
-                      : 'text-gray-300 hover:bg-slate-700 hover:text-white'
+                      : 'text-gray-300 hover:bg-slate-700/50 hover:text-white'
                   }`}
                 >
                   <span className="text-xl">{item.icon}</span>
@@ -75,7 +75,7 @@ function Sidebar({ isOpen, onClose }) {
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t border-slate-700/50">
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
                 {JSON.parse(localStorage.getItem('user') || '{}')?.name?.[0] || 'U'}

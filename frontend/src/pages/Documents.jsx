@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import DocumentCard from '../components/DocumentCard';
+import UploadZone from '../components/UploadZone';
 
 function Documents() {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ function Documents() {
     const token = localStorage.getItem('token');
     
     try {
-      const response = await fetch('http://localhost:8000/documents', {
+      const response = await fetch('/api/documents', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
       
@@ -45,7 +46,7 @@ function Documents() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -54,12 +55,16 @@ function Documents() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        alert(`Success! Extracted ${data.memories_created || 0} memories from ${file.name}`);
         await fetchDocuments();
       } else {
-        alert(t('documents.uploadFailed'));
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Upload failed');
       }
     } catch (error) {
-      alert(t('documents.connectionError'));
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error.message}. Please check the file format and try again.`);
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -72,7 +77,7 @@ function Documents() {
     if (!confirm(t('documents.deleteConfirm'))) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/documents/${documentId}`, {
+      const response = await fetch(`/api/documents/${documentId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -80,15 +85,17 @@ function Documents() {
       if (response.ok) {
         await fetchDocuments();
       } else {
-        alert(t('documents.deleteFailed'));
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Delete failed: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      alert(t('documents.connectionError'));
+      console.error('Delete error:', error);
+      alert('Connection error. Please check your network.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
+    <div className="min-h-screen flex">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col lg:ml-64">
@@ -97,36 +104,21 @@ function Documents() {
         <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             {/* Upload Section */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
+            <div className="animate-fade-in">
               <h3 className="text-lg font-semibold text-white mb-4">{t('documents.uploadDocument')}</h3>
-              <div className="flex gap-4">
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  disabled={uploading}
-                  className="hidden"
-                  id="document-upload"
-                  accept=".pdf,.txt,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.wav,.mp3"
-                />
-                <label
-                  htmlFor="document-upload"
-                  className={`px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition cursor-pointer flex items-center gap-2 ${
-                    uploading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  <span className="text-xl">📄</span>
-                  <span>{uploading ? t('documents.uploading') : t('documents.chooseFile')}</span>
-                </label>
-                <p className="text-gray-400 text-sm self-center">
-                  {t('documents.supportedFormats')}
-                </p>
-              </div>
+              <UploadZone 
+                onUpload={(data) => {
+                  alert(`Success! Extracted ${data.memories_created || 0} memories.`);
+                  fetchDocuments();
+                }}
+                uploading={uploading}
+              />
             </div>
 
             {/* Documents Grid */}
             {loading ? (
               <div className="flex items-center justify-center h-64">
-                <div className="text-white">{t('common.loading')}</div>
+                <div className="text-white animate-pulse">{t('common.loading')}</div>
               </div>
             ) : documents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -135,8 +127,8 @@ function Documents() {
                 ))}
               </div>
             ) : (
-              <div className="bg-slate-800 rounded-xl p-12 border border-slate-700 text-center">
-                <div className="text-6xl mb-4">📄</div>
+              <div className="glass-card-dark p-12 text-center animate-fade-in">
+                <div className="text-6xl mb-4 animate-float">📄</div>
                 <h3 className="text-xl font-semibold text-white mb-2">{t('documents.noDocuments')}</h3>
                 <p className="text-gray-400 mb-6">{t('documents.noDocumentsDesc')}</p>
               </div>
