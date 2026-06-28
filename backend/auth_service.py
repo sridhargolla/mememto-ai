@@ -1,5 +1,6 @@
 import os
 import bcrypt
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -8,9 +9,16 @@ from models import User
 
 
 # JWT Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this-in-production")
+# Generate a secure random key if not provided
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    # Generate and save a new secret key
+    SECRET_KEY = secrets.token_urlsafe(32)
+    print("⚠️  WARNING: No SECRET_KEY provided. Generated a random key.")
+    print(f"   Generated key: {SECRET_KEY}")
+    print("   Add this to your .env file as SECRET_KEY for persistence.")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours (reduced from 7 days for security)
 
 
 def hash_password(password: str) -> str:

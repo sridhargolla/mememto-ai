@@ -112,7 +112,7 @@ class MemoryExtractorService:
     
     def _build_extraction_prompt(self, text: str, max_memories: int) -> str:
         """
-        Build the structured extraction prompt for the LLM.
+        Build the structured extraction prompt for the LLM with strong JSON forcing.
         """
         prompt = f"""You are a senior AI memory extraction engine. Analyze the text below and extract at most {max_memories} key structured memories (such as professional experiences, projects, skills, education, people, organizations, or events).
 
@@ -141,10 +141,14 @@ For each extracted memory, you MUST generate a JSON object matching this exact s
   "source": "Source document name or null"
 }}
 
-Rules:
+CRITICAL RULES:
 1. Output ONLY a valid JSON array of these objects (wrapped in [ and ]).
-2. Do NOT include any conversational text, markdown code blocks, or explanations.
-3. Ensure all JSON fields are properly double-quoted.
+2. Do NOT include any conversational text, markdown code blocks (```json), or explanations.
+3. Do NOT add any text before or after the JSON array.
+4. Ensure all JSON fields are properly double-quoted.
+5. Use null for missing values, not empty strings.
+6. If no memories can be extracted, return an empty array: []
+7. The output must start with [ and end with ]
 
 Text to analyze:
 ---
@@ -160,7 +164,7 @@ JSON Output:"""
         source_document: str = None
     ) -> List[Dict[str, Any]]:
         """
-        Parse the LLM response into structured memory data.
+        Parse the LLM response into structured memory data with enhanced error handling.
         """
         try:
             # Extract JSON from response (handle potential markdown code blocks)
@@ -168,6 +172,7 @@ JSON Output:"""
             
             if not json_str:
                 print("Failed to extract JSON string from response")
+                print(f"Raw response: {response[:500]}...")
                 return []
             
             # Parse JSON
@@ -177,24 +182,45 @@ JSON Output:"""
             if not isinstance(memories_data, list):
                 memories_data = [memories_data]
             
-            # Add source document if provided
-            if source_document:
-                for memory in memories_data:
-                    if isinstance(memory, dict):
-                        # Set source field
-                        if 'source' not in memory or not memory['source']:
-                            memory['source'] = source_document
-                            
-                        # Set source_documents list
-                        if 'source_documents' not in memory or not memory['source_documents']:
-                            memory['source_documents'] = [source_document]
-                        elif source_document not in memory['source_documents']:
-                            memory['source_documents'].append(source_document)
+            # Validate each memory has required fields
+            validated_memories = []
+            for memory in memories_data:
+                if not isinstance(memory, dict):
+                    print(f"Skipping non-dict memory item: {memory}")
+                    continue
+                
+                # Ensure required fields exist
+                if 'type' not in memory:
+                    memory['type'] = 'document'
+                if 'title' not in memory:
+                    memory['title'] = 'Untitled Memory'
+                if 'summary' not in memory:
+                    memory['summary'] = memory.get('title', '')
+                if 'importance' not in memory:
+                    memory['importance'] = 'medium'
+                
+                # Ensure nested structures exist
+                if 'entities' not in memory or not isinstance(memory['entities'], dict):
+                    memory['entities'] = {'people': [], 'organizations': [], 'locations': [], 'skills': []}
+                if 'time' not in memory or not isinstance(memory['time'], dict):
+                    memory['time'] = {'start': None, 'end': None}
+                if 'source_documents' not in memory:
+                    memory['source_documents'] = []
+                
+                # Add source document if provided
+                if source_document:
+                    if 'source' not in memory or not memory['source']:
+                        memory['source'] = source_document
+                    if source_document not in memory['source_documents']:
+                        memory['source_documents'].append(source_document)
+                
+                validated_memories.append(memory)
             
-            return memories_data
+            return validated_memories
             
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}. Raw response was: {response}")
+            print(f"JSON decode error: {e}")
+            print(f"Attempting recovery on: {json_str[:500] if json_str else 'None'}...")
             # Try a regex-based recovery for common trailing comma issues
             try:
                 # Remove trailing commas before closing braces/brackets
@@ -202,16 +228,20 @@ JSON Output:"""
                 memories_data = json.loads(cleaned)
                 if not isinstance(memories_data, list):
                     memories_data = [memories_data]
-                return memories_data
-            except:
+                # Re-run validation
+                return self._parse_memories_from_response(json.dumps(memories_data), source_document)
+            except Exception as recovery_error:
+                print(f"Recovery failed: {recovery_error}")
                 return []
         except Exception as e:
             print(f"Error parsing memories: {e}")
+            print(f"Response type: {type(response)}, Length: {len(response) if response else 0}")
             return []
     
     def _extract_json_from_response(self, response: str) -> Optional[str]:
         """
         Extract JSON string from LLM response, handling markdown code blocks and raw bounds.
+        Enhanced with more robust extraction and validation.
         """
         if not response:
             return None
@@ -232,16 +262,97 @@ JSON Output:"""
         start_array = response_str.find('[')
         end_array = response_str.rfind(']')
         if start_array != -1 and end_array != -1 and end_array > start_array:
-            return response_str[start_array:end_array+1]
+            json_str = response_str[start_array:end_array+1]
+            # Validate it looks like JSON
+            if self._looks_like_json(json_str):
+                return json_str
             
         # 4. Look for outer object bounds { ... }
         start_obj = response_str.find('{')
         end_obj = response_str.rfind('}')
         if start_obj != -1 and end_obj != -1 and end_obj > start_obj:
             # Wrap single object in list
-            return f"[{response_str[start_obj:end_obj+1]}]"
+            json_str = f"[{response_str[start_obj:end_obj+1]}]"
+            if self._looks_like_json(json_str):
+                return json_str
             
-        return response_str
+        # 5. If nothing worked, try to clean the entire response
+        cleaned = self._clean_json_response(response_str)
+        if cleaned and self._looks_like_json(cleaned):
+            return cleaned
+            
+        return None
+    
+    def _looks_like_json(self, text: str) -> bool:
+        """
+        Quick heuristic check if text looks like JSON.
+        """
+        if not text:
+            return False
+        text = text.strip()
+        # Must start with [ or {
+        if not (text.startswith('[') or text.startswith('{')):
+            return False
+        # Must end with ] or }
+        if not (text.endswith(']') or text.endswith('}')):
+            return False
+        # Basic balance check
+        open_braces = text.count('{')
+        close_braces = text.count('}')
+        open_brackets = text.count('[')
+        close_brackets = text.count(']')
+        return open_braces == close_braces and open_brackets == close_brackets
+    
+    def _clean_json_response(self, response: str) -> Optional[str]:
+        """
+        Clean common JSON formatting issues from LLM response.
+        """
+        if not response:
+            return None
+            
+        cleaned = response.strip()
+        
+        # Remove common conversational prefixes
+        prefixes_to_remove = [
+            r'^Here is the JSON:?\s*',
+            r'^The extracted memories are:?\s*',
+            r'^JSON output:?\s*',
+            r'^Result:?\s*',
+            r'^Output:?\s*',
+        ]
+        
+        for prefix in prefixes_to_remove:
+            cleaned = re.sub(prefix, '', cleaned, flags=re.IGNORECASE)
+        
+        # Remove trailing conversational text
+        suffixes_to_remove = [
+            r'\s*Here are the memories\.',
+            r'\s*I hope this helps\.',
+            r'\s*Let me know if you need anything else\.',
+        ]
+        
+        for suffix in suffixes_to_remove:
+            cleaned = re.sub(suffix, '', cleaned, flags=re.IGNORECASE)
+        
+        # Extract JSON if embedded in text
+        # Find the first [ or { and last ] or }
+        first_bracket = cleaned.find('[')
+        first_brace = cleaned.find('{')
+        
+        if first_bracket == -1 and first_brace == -1:
+            return None
+            
+        start = min(first_bracket, first_brace) if first_bracket != -1 and first_brace != -1 else max(first_bracket, first_brace)
+        
+        if start == first_bracket:
+            end = cleaned.rfind(']')
+        else:
+            end = cleaned.rfind('}')
+            
+        if end != -1 and end > start:
+            return cleaned[start:end+1]
+        
+        return cleaned
     
     def validate_memory_schema(self, memory_data: Dict[str, Any]) -> bool:
         """

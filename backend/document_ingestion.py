@@ -7,6 +7,7 @@ import pytesseract
 from typing import Optional
 from memory_extractor_service import MemoryExtractorService
 from audio_processor import AudioProcessorService
+from file_validator import FileValidator
 
 
 class DocumentExtractor:
@@ -107,6 +108,15 @@ class DocumentExtractor:
         
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
+        
+        # Validate file signature for security (except txt files)
+        if file_typelower != 'txt':
+            if not FileValidator.validate_file_type(file_path, file_typelower):
+                detected_type = FileValidator.get_detected_type(file_path)
+                error_msg = f"File signature does not match extension. Expected: {file_typelower}"
+                if detected_type:
+                    error_msg += f", Detected: {detected_type}"
+                raise ValueError(error_msg)
             
         # Limit file size processing on CPU to avoid hanging (e.g., max 50MB for docs, 100MB for audio)
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)

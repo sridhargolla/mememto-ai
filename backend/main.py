@@ -7,6 +7,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, AsyncGenerator
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from model_wrapper import LocalLLM
 from database import init_db, get_db
 from models import Memory, Conversation
@@ -22,13 +25,18 @@ from cache_service import response_cache
 from async_processor import async_processor, ProcessingStatus
 from auth_service import create_user, authenticate_user, create_access_token, decode_token
 from language_service import detect_language, get_language_instruction
+from prompt_sanitizer import PromptSanitizer
 from sqlalchemy.orm import Session
 from models import User
 
 # Load environment variables
 load_dotenv()
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Memento AI Backend")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configure CORS
 app.add_middleware(
@@ -87,13 +95,23 @@ n_ctx = int(os.getenv("N_CTX", "2048"))
 n_threads = int(os.getenv("N_THREADS", "4"))
 
 llm = None
+model_loaded = False
 
-try:
-    llm = LocalLLM(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads)
-    print(f"Model loaded successfully from {model_path}")
-except Exception as e:
-    print(f"Warning: Failed to load model: {e}")
-    print("The /chat endpoint will return an error message.")
+# Check if model file exists before attempting to load
+if os.path.exists(model_path):
+    try:
+        llm = LocalLLM(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads)
+        model_loaded = True
+        print(f"✓ Model loaded successfully from {model_path}")
+    except Exception as e:
+        print(f"✗ Failed to load model: {e}")
+        print(f"  Model path: {model_path}")
+        print(f"  The system will run in degraded mode (no AI chat).")
+else:
+    print(f"✗ Model file not found: {model_path}")
+    print(f"  Please run 'python setup_models.py' to download required models.")
+    print(f"  Or manually download a GGUF model and update MODEL_PATH in .env")
+    print(f"  The system will run in degraded mode (no AI chat).")
 
 
 # Pydantic models
@@ -223,6 +241,11 @@ class SystemStatus(BaseModel):
     memories_created: int
     gpu: str = "Disabled"
     offline: bool = True
+    cpu_usage_percent: float = 0.0
+    memory_usage_mb: float = 0.0
+    memory_available_mb: float = 0.0
+    disk_usage_gb: float = 0.0
+    disk_free_gb: float = 0.0
 
 
 
@@ -251,7 +274,9 @@ async def health_check():
         "status": "running",
         "ai_runtime": "llama.cpp",
         "device": "CPU",
-        "offline": True
+        "offline": True,
+        "model_loaded": model_loaded,
+        "model_path": model_path
     }
 
 
@@ -275,6 +300,7 @@ async def ai_status():
 
 # Authentication endpoints
 @app.post("/auth/signup", response_model=TokenResponse)
+@limiter.limit("5/minute")
 async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user."""
     # Check if user already exists
@@ -302,6 +328,7 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/auth/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     """Login a user and return JWT token."""
     user = authenticate_user(db, user_data.email, user_data.password)
@@ -400,6 +427,11 @@ async def system_status(current_user: User = Depends(get_current_user), db: Sess
     if model_name:
         model_name = model_name.split("/")[-1] if "/" in model_name else model_name
     
+    # Get system resource metrics
+    cpu_info = SystemMonitor.get_cpu_usage()
+    memory_info = SystemMonitor.get_memory_usage()
+    disk_info = SystemMonitor.get_disk_usage()
+    
     return SystemStatus(
         ai_engine="llama.cpp",
         model=model_name,
@@ -410,7 +442,12 @@ async def system_status(current_user: User = Depends(get_current_user), db: Sess
         documents_processed=documents_processed,
         memories_created=memories_count,
         gpu="Disabled",
-        offline=True
+        offline=True,
+        cpu_usage_percent=cpu_info['percent'],
+        memory_usage_mb=memory_info['rss_mb'],
+        memory_available_mb=memory_info['available_mb'],
+        disk_usage_gb=disk_info['used_gb'],
+        disk_free_gb=disk_info['free_gb']
     )
 
 
@@ -428,20 +465,29 @@ async def benchmark():
     
     # Measure response time with a simple test
     start_time = time.time()
-    test_prompt = "Hello"
+    test_prompt = "Hello, please respond with a brief greeting."
+    tokens_generated = 0
     
     if llm:
         try:
-            llm.generate(test_prompt, max_tokens=10, temperature=0.7)
-        except:
-            pass
+            response = llm.generate(test_prompt, max_tokens=50, temperature=0.7)
+            tokens_generated = len(response.split()) if response else 0
+        except Exception as e:
+            print(f"Benchmark test failed: {e}")
     
     response_time = time.time() - start_time
+    
+    # Calculate tokens per second
+    tokens_per_second = tokens_generated / response_time if response_time > 0 and tokens_generated > 0 else 0
     
     # Get system metrics
     memory_info = SystemMonitor.get_memory_usage()
     cpu_info = SystemMonitor.get_cpu_usage()
     cache_stats = response_cache.get_stats()
+    
+    # Add tokens per second to cache stats
+    cache_stats['tokens_per_second'] = round(tokens_per_second, 2)
+    cache_stats['tokens_generated'] = tokens_generated
     
     return BenchmarkResult(
         model=model_name,
@@ -488,21 +534,33 @@ async def get_timeline(current_user: User = Depends(get_current_user), db: Sessi
 
 # Chat endpoint (streaming)
 @app.post("/chat")
+@limiter.limit("20/minute")
 async def chat(request: ChatRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if llm is None:
         async def error_stream():
-            yield f"data: {json.dumps({'error': 'Model not loaded. Please check the model path and try again.'})}\n\n"
+            error_msg = "AI model not loaded. Please download models using 'python setup_models.py' "
+            error_msg += "or place a GGUF model in the models/ directory and update MODEL_PATH in .env"
+            yield f"data: {json.dumps({'error': error_msg})}\n\n"
         return StreamingResponse(error_stream(), media_type="text/event-stream")
     
     async def stream_response():
         try:
+            # Sanitize user input to prevent prompt injection
+            sanitized_message = PromptSanitizer.sanitize_input(request.message)
+            
+            # Check for injection attempts
+            is_injection, pattern = PromptSanitizer.detect_injection_attempt(request.message)
+            if is_injection:
+                yield f"data: {json.dumps({'error': 'Invalid input detected. Please rephrase your message.'})}\n\n"
+                return
+            
             # Detect language from user message
-            detected_language = detect_language(request.message)
+            detected_language = detect_language(sanitized_message)
             language_instruction = get_language_instruction(detected_language)
             
             # Retrieve relevant memories using Hybrid Search (filtered by user)
             retriever = MemoryRetriever()
-            relevant_memories = retriever.retrieve_hybrid(db, request.message, top_k=3, user_id=current_user.id)
+            relevant_memories = retriever.retrieve_hybrid(db, sanitized_message, top_k=3, user_id=current_user.id)
             
             # Build context from retrieved memories
             context = retriever.format_context(relevant_memories)
@@ -538,7 +596,7 @@ Retrieved Context:
 
 Recent Conversation History:
 {history_str}
-User question: {request.message}
+User question: {sanitized_message}
 
 Answer:"""
                 stream = llm.generate_stream(augmented_prompt, max_tokens=512, temperature=0.7)
@@ -550,7 +608,7 @@ Answer:"""
 
 Recent Conversation History:
 {history_str}
-User question: {request.message}
+User question: {sanitized_message}
 
 Answer:"""
                 stream = llm.generate_stream(chat_prompt, max_tokens=512, temperature=0.7)
@@ -673,6 +731,7 @@ async def delete_conversation_endpoint(conversation_id: int, db: Session = Depen
 
 # Async document upload endpoint
 @app.post("/upload/async", response_model=AsyncUploadResponse)
+@limiter.limit("10/minute")
 async def upload_document_async(file: UploadFile = File(...)):
     """Upload document for async background processing."""
     
@@ -713,6 +772,7 @@ async def get_task_status(task_id: str):
 
 # Document upload endpoint
 @app.post("/upload", response_model=DocumentUploadResponse)
+@limiter.limit("5/minute")
 async def upload_document(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
@@ -721,7 +781,11 @@ async def upload_document(
     """Upload and process a document to extract memories."""
     
     if llm is None:
-        raise HTTPException(status_code=500, detail="Model not loaded. Cannot extract memories.")
+        raise HTTPException(
+            status_code=500, 
+            detail="AI model not loaded. Please download models using 'python setup_models.py' "
+                  "or place a GGUF model in the models/ directory and update MODEL_PATH in .env"
+        )
     
     # Get file extension
     file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else ''

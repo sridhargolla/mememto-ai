@@ -1,0 +1,63 @@
+JOHN DOE
+Software Engineer
+john.doe@email.com | (555) 123-4567 | San Francisco, CA
+
+SUMMARY
+Experienced software engineer with 5+ years in full-stack development. Passionate about building scalable applications and mentoring junior developers. Skilled in Python, JavaScript, and cloud technologies.
+
+EXPERIENCE
+
+Senior Software Engineer
+TechCorp Inc.
+June 2022 - Present
+- Led development of microservices architecture serving 1M+ users
+- Mentored team of 4 junior developers
+- Improved system performance by 40% through optimization
+- Implemented CI/CD pipelines reducing deployment time by 60%
+
+Software Engineer
+StartupXYZ
+January 2020 - May 2022
+- Built RESTful APIs using Python and FastAPI
+- Developed React frontend for customer-facing applications
+- Collaborated with product team to define technical requirements
+- Reduced bug rate by 30% through comprehensive testing
+
+Junior Developer
+WebAgency
+June 2018 - December 2019
+- Maintained and updated legacy codebase
+- Developed responsive web interfaces
+- Participated in code reviews and agile ceremonies
+
+EDUCATION
+
+Bachelor of Science in Computer Science
+University of Technology
+Graduated: May 2018
+GPA: 3.7/4.0
+
+SKILLS
+
+Programming Languages: Python, JavaScript, TypeScript, Java
+Frameworks: React, FastAPI, Django, Spring Boot
+Databases: PostgreSQL, MongoDB, SQLite
+Tools: Docker, Kubernetes, Git, AWS
+Languages: English (Native), Spanish (Intermediate)
+
+PROJECTS
+
+E-Commerce Platform
+- Built full-stack e-commerce solution with React and Python
+- Implemented payment processing with Stripe
+- Deployed on AWS with auto-scaling
+
+Task Management App
+- Created collaborative task management tool
+- Real-time updates using WebSockets
+- Mobile-responsive design
+
+CERTIFICATIONS
+
+AWS Certified Developer - 2023
+Google Cloud Professional - 2022

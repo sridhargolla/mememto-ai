@@ -476,56 +476,131 @@ memento-ai/
 
 * Python 3.10+
 * Node.js 18+
-* CPU-based laptop
+* CPU-based laptop (8GB+ RAM recommended)
+* Tesseract OCR (for image text extraction)
 
 ---
 
-## Backend Setup
+## Quick Start
 
-Clone repository:
+### 1. Clone Repository
 
 ```bash
 git clone <repository-url>
-
-cd memento-ai/backend
+cd memento-ai
 ```
 
-Create environment:
+### 2. Setup Backend
 
 ```bash
+cd backend
+
+# Create virtual environment
 python -m venv venv
-```
 
-Activate:
-
-Windows:
-
-```bash
+# Activate virtual environment
+# Windows:
 venv\Scripts\activate
-```
+# Mac/Linux:
+source venv/bin/activate
 
-Install dependencies:
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-Run:
+### 3. Setup Environment Variables
 
 ```bash
-uvicorn app.main:app --reload
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env and update SECRET_KEY (generate with: python -c "import secrets; print(secrets.token_urlsafe(32))")
 ```
 
----
+### 4. Download AI Models
 
-## Frontend Setup
+```bash
+# Run from project root
+python setup_models.py
+
+# This will download:
+# - Qwen2.5-3B-Instruct-GGUF (~1.9GB) for LLM inference
+# - Whisper Base English (~140MB) for audio transcription
+```
+
+Alternatively, download manually:
+- LLM: https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF
+- Whisper: https://huggingface.co/ggerganov/whisper.cpp
+
+### 5. Install Tesseract OCR (Required for images)
+
+**Windows:**
+```bash
+# Download installer from: https://github.com/UB-Mannheim/tesseract/wiki
+# Install and add to PATH
+```
+
+**Mac:**
+```bash
+brew install tesseract
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get install tesseract-ocr
+```
+
+### 6. Start Backend
+
+```bash
+cd backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### 7. Setup Frontend
 
 ```bash
 cd frontend
 
+# Install dependencies
 npm install
 
+# Start development server
 npm run dev
+```
+
+### 8. Access Application
+
+Open browser to: http://localhost:5173
+
+---
+
+## Troubleshooting
+
+### Model Not Found Error
+
+If you see "Model file not found", ensure:
+1. You ran `python setup_models.py`
+2. The `.env` file has correct `MODEL_PATH`
+3. The model file exists in the `models/` directory
+
+### Tesseract Not Found
+
+If OCR fails, ensure Tesseract is installed and in your system PATH:
+```bash
+# Test installation
+tesseract --version
+```
+
+### Port Already in Use
+
+If port 8000 or 5173 is in use:
+```bash
+# Backend - use different port
+uvicorn main:app --reload --port 8001
+
+# Frontend - use different port
+npm run dev -- --port 5174
 ```
 
 ---
