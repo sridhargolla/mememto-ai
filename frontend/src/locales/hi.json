@@ -22,7 +22,9 @@
     "memories": "यादें",
     "timeline": "समयरेखा",
     "privacy": "गोपनीयता",
-    "settings": "सेटिंग्स"
+    "settings": "सेटिंग्स",
+    "systemStatus": "सिस्टम स्थिति",
+    "performance": "प्रदर्शन"
   },
   "landing": {
     "title": "आपका व्यक्तिगत AI",
