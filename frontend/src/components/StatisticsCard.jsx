@@ -16,7 +16,7 @@ function StatisticsCard({ icon, title, value, subtitle, trend, color = 'purple' 
   };
 
   return (
-    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-purple-500/50 transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/10">
+    <div className="glass-card-dark rounded-xl p-6 border border-slate-700/50 hover:border-purple-500/50 transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/10 premium-card">
       <div className="flex items-start justify-between mb-4">
         <div className={`w-12 h-12 ${iconBgClasses[color]} rounded-xl flex items-center justify-center text-2xl`}>
           {icon}

@@ -2,19 +2,22 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import BackgroundLayout from '../components/BackgroundLayout';
+import { backgroundImages } from '../constants/backgrounds';
 
 function Privacy() {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
-      <div className="flex-1 flex flex-col lg:ml-64">
-        <Navbar onMenuClick={() => setSidebarOpen(true)} title={t('privacy.title')} />
+    <BackgroundLayout image={backgroundImages.privacy}>
+      <div className="min-h-screen flex">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         
-        <main className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 flex flex-col lg:ml-64">
+          <Navbar onMenuClick={() => setSidebarOpen(true)} title={t('privacy.title')} />
+          
+          <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-4xl mx-auto space-y-8">
             {/* Header */}
             <div className="bg-slate-800 rounded-xl p-8 border border-slate-700">
@@ -162,8 +165,9 @@ function Privacy() {
             </div>
           </div>
         </main>
+        </div>
       </div>
-    </div>
+    </BackgroundLayout>
   );
 }
 

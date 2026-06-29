@@ -22,7 +22,7 @@ function MemoryCard({ memory, onEdit, onDelete }) {
   };
 
   return (
-    <div className="bg-slate-800 rounded-xl p-5 border border-slate-700 hover:border-purple-500/50 transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/10 group">
+    <div className="glass-card-dark rounded-xl p-5 border border-slate-700/50 hover:border-purple-500/50 transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/10 group premium-card">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -50,7 +50,7 @@ function MemoryCard({ memory, onEdit, onDelete }) {
           {memory.tags.split(',').map((tag, idx) => (
             <span
               key={idx}
-              className="px-2 py-1 bg-slate-700 text-gray-300 text-xs rounded-full"
+              className="px-2 py-1 bg-slate-700/50 text-gray-300 text-xs rounded-full"
             >
               {tag.trim()}
             </span>
@@ -59,7 +59,7 @@ function MemoryCard({ memory, onEdit, onDelete }) {
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-slate-700">
+      <div className="flex items-center justify-between pt-3 border-t border-slate-700/50">
         <span className="text-xs text-gray-500">
           {new Date(memory.created_at).toLocaleDateString()}
         </span>
@@ -67,7 +67,7 @@ function MemoryCard({ memory, onEdit, onDelete }) {
           {onEdit && (
             <button
               onClick={() => onEdit(memory)}
-              className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-slate-700 rounded transition"
+              className="p-1.5 text-gray-400 hover:text-purple-400 hover:bg-slate-700/50 rounded transition"
             >
               ✏️
             </button>
@@ -75,7 +75,7 @@ function MemoryCard({ memory, onEdit, onDelete }) {
           {onDelete && (
             <button
               onClick={() => onDelete(memory.id)}
-              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-slate-700 rounded transition"
+              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-slate-700/50 rounded transition"
             >
               🗑️
             </button>
