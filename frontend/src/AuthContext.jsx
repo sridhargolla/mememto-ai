@@ -1,7 +1,31 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
+
+// Decode JWT payload without verifying signature (for expiry check only)
+function parseJwt(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function isTokenExpired(token) {
+  const payload = parseJwt(token);
+  if (!payload || !payload.exp) return true;
+  // exp is in seconds; add a 10-second buffer
+  return Date.now() >= (payload.exp - 10) * 1000;
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -9,14 +33,27 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
+    navigate('/login');
+  }, [navigate]);
+
   useEffect(() => {
-    // Check for existing token and user on mount
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
+    const storedUser  = localStorage.getItem('user');
+
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      if (isTokenExpired(storedToken)) {
+        // Token has expired — clear and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      } else {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      }
     }
     setLoading(false);
   }, []);
@@ -28,20 +65,25 @@ export function AuthProvider({ children }) {
     setUser(userData);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
-    navigate('/');
-  };
+  const isAuthenticated = () => !!token && !!user;
 
-  const isAuthenticated = () => {
-    return !!token && !!user;
-  };
+  // Global fetch wrapper that auto-logs out on 401 from any API call
+  const authFetch = useCallback(async (url, options = {}) => {
+    const tok = localStorage.getItem('token');
+    const headers = {
+      ...(options.headers || {}),
+      ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
+    };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      logout();
+      throw new Error('Session expired. Please log in again.');
+    }
+    return res;
+  }, [logout]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated, loading, authFetch }}>
       {children}
     </AuthContext.Provider>
   );

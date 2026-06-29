@@ -1,71 +1,35 @@
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Menu, Wifi, WifiOff, Bell } from 'lucide-react';
 
-function Navbar({ onMenuClick, title }) {
-  const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
-  };
-
-  const handleLanguageChange = (lang) => {
-    i18n.changeLanguage(lang);
-    localStorage.setItem('language', lang);
-  };
-
+function Navbar({ onMenuClick, title, subtitle }) {
   return (
-    <header className="bg-slate-800 border-b border-slate-700 px-4 lg:px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Mobile menu button */}
-          <button
-            onClick={onMenuClick}
-            className="lg:hidden p-2 text-gray-400 hover:text-white transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0  24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+    <header className="glass-navbar px-5 py-3 flex items-center gap-4 sticky top-0 z-30">
+      {/* Mobile menu toggle */}
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition"
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
+      </button>
 
-          {/* Page title */}
-          <h2 className="text-xl font-semibold text-white">{title}</h2>
+      {/* Title */}
+      <div className="flex-1 min-w-0">
+        <h2 className="text-base font-semibold text-white truncate">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 truncate">{subtitle}</p>}
+      </div>
+
+      {/* Status indicators */}
+      <div className="flex items-center gap-2">
+        {/* Offline badge */}
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
+          <WifiOff size={12} className="text-red-400" />
+          <span className="text-[11px] text-red-400 font-semibold">OFFLINE</span>
         </div>
 
-        {/* Right side actions */}
-        <div className="flex items-center gap-4">
-          {/* Language selector */}
-          <select
-            value={i18n.language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            <option value="en">{t('language.english')}</option>
-            <option value="te">{t('language.telugu')}</option>
-            <option value="hi">{t('language.hindi')}</option>
-          </select>
-
-          {/* User avatar */}
-          <div className="hidden sm:flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-              {user.name?.[0] || 'U'}
-            </div>
-            <div className="hidden md:block">
-              <p className="text-sm font-medium text-white">{user.name || 'User'}</p>
-              <p className="text-xs text-gray-400">{user.email || ''}</p>
-            </div>
-          </div>
-
-          {/* Logout button */}
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
-          >
-            {t('common.logout')}
-          </button>
+        {/* CPU badge */}
+        <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[11px] text-emerald-400 font-semibold">CPU</span>
         </div>
       </div>
     </header>

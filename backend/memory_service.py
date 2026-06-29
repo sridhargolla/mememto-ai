@@ -12,7 +12,8 @@ class MemoryService:
     
     @staticmethod
     def create_memory(db: Session, title: str, content: str, tags: Optional[str] = None, 
-                     metadata: Optional[str] = None, source_document: Optional[str] = None, user_id: Optional[int] = None) -> Memory:
+                     metadata: Optional[str] = None, source_document: Optional[str] = None, user_id: Optional[int] = None,
+                     type: Optional[str] = None) -> Memory:
         """Create a new memory with optional embedding."""
         embedding_service = EmbeddingService()
         embedding = None
@@ -31,6 +32,7 @@ class MemoryService:
             title=title,
             content=content,
             tags=tags,
+            type=type,
             embedding=embedding,
             metadata_json=metadata,
             source_file=source_document,

@@ -47,3 +47,8 @@ htmlcov/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Large AI model files
+models/
+*.gguf
+*.bin

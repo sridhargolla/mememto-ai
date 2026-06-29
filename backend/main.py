@@ -1,12 +1,14 @@
 import os
 import tempfile
 import json
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Header
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List, AsyncGenerator
 from dotenv import load_dotenv
+load_dotenv()
+from datetime import datetime
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -43,7 +45,12 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,7 +111,7 @@ if os.path.exists(model_path):
     try:
         llm = LocalLLM(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads)
         model_loaded = True
-        print(f"✓ Model loaded successfully from {model_path}")
+        print(f"[SUCCESS] Model loaded successfully from {model_path}")
         
         # Record model load metric
         from database import SessionLocal
@@ -116,11 +123,11 @@ if os.path.exists(model_path):
         finally:
             db.close()
     except Exception as e:
-        print(f"✗ Failed to load model: {e}")
+        print(f"[ERROR] Failed to load model: {e}")
         print(f"  Model path: {model_path}")
         print(f"  The system will run in degraded mode (no AI chat).")
 else:
-    print(f"✗ Model file not found: {model_path}")
+    print(f"[ERROR] Model file not found: {model_path}")
     print(f"  Please run 'python setup_models.py' to download required models.")
     print(f"  Or manually download a GGUF model and update MODEL_PATH in .env")
     print(f"  The system will run in degraded mode (no AI chat).")
@@ -196,7 +203,7 @@ class MemoryResponse(BaseModel):
     tags: Optional[str]
     json_metadata: Optional[str]
     source_document: Optional[str]
-    created_at: str
+    created_at: datetime
     memory_type: Optional[str] = None
     importance: Optional[str] = None
     entities_people: Optional[str] = None
@@ -215,7 +222,7 @@ class ConversationResponse(BaseModel):
     id: int
     question: str
     answer: str
-    timestamp: str
+    timestamp: datetime
 
     class Config:
         from_attributes = True
@@ -313,7 +320,7 @@ async def ai_status():
 # Authentication endpoints
 @app.post("/auth/signup", response_model=TokenResponse)
 @limiter.limit("5/minute")
-async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
+async def signup(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user."""
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -341,7 +348,7 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/auth/login", response_model=TokenResponse)
 @limiter.limit("10/minute")
-async def login(user_data: UserLogin, db: Session = Depends(get_db)):
+async def login(request: Request, user_data: UserLogin, db: Session = Depends(get_db)):
     """Login a user and return JWT token."""
     user = authenticate_user(db, user_data.email, user_data.password)
     if not user:
@@ -630,7 +637,7 @@ async def get_timeline(current_user: User = Depends(get_current_user), db: Sessi
 # Chat endpoint (streaming)
 @app.post("/chat")
 @limiter.limit("20/minute")
-async def chat(request: ChatRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def chat(request: Request, chat_data: ChatRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if llm is None:
         async def error_stream():
             error_msg = "AI model not loaded. Please download models using 'python setup_models.py' "
@@ -641,10 +648,10 @@ async def chat(request: ChatRequest, current_user: User = Depends(get_current_us
     async def stream_response():
         try:
             # Sanitize user input to prevent prompt injection
-            sanitized_message = PromptSanitizer.sanitize_input(request.message)
+            sanitized_message = PromptSanitizer.sanitize_input(chat_data.message)
             
             # Check for injection attempts
-            is_injection, pattern = PromptSanitizer.detect_injection_attempt(request.message)
+            is_injection, pattern = PromptSanitizer.detect_injection_attempt(chat_data.message)
             if is_injection:
                 yield f"data: {json.dumps({'error': 'Invalid input detected. Please rephrase your message.'})}\n\n"
                 return
@@ -658,7 +665,41 @@ async def chat(request: ChatRequest, current_user: User = Depends(get_current_us
             relevant_memories = retriever.retrieve_hybrid(db, sanitized_message, top_k=3, user_id=current_user.id)
             
             # Build context from retrieved memories
-            context = retriever.format_context(relevant_memories)
+            retrieved_context = retriever.format_context(relevant_memories)
+            
+            # Query all files uploaded by this user to answer questions about media files, sizes, upload times, and storage space
+            all_user_memories = db.query(Memory).filter(Memory.user_id == current_user.id).all()
+            uploaded_files = []
+            total_space = 0
+            for m in all_user_memories:
+                if m.source_file or (m.tags and 'upload' in m.tags):
+                    file_info = {
+                        "name": m.source_file or m.title,
+                        "type": "file",
+                        "size": "unknown",
+                        "uploaded": m.created_at.strftime('%Y-%m-%d %H:%M:%S UTC')
+                    }
+                    if m.metadata_json:
+                        try:
+                            meta = json.loads(m.metadata_json)
+                            file_info["type"] = meta.get("file_type", file_info["type"])
+                            file_info["size"] = meta.get("file_size_human", file_info["size"])
+                            total_space += meta.get("file_size_bytes", 0)
+                        except:
+                            pass
+                    uploaded_files.append(file_info)
+            
+            files_summary_lines = []
+            if uploaded_files:
+                files_summary_lines.append("\nUploaded Files & Storage Metadata:")
+                files_summary_lines.append(f"- Total storage occupied: {_format_size(total_space)}")
+                for f in uploaded_files:
+                    files_summary_lines.append(
+                        f"- File: '{f['name']}' | Type: {f['type'].upper()} | Size: {f['size']} | Uploaded: {f['uploaded']}"
+                    )
+            
+            files_context = "\n".join(files_summary_lines)
+            context = (retrieved_context + "\n" + files_context).strip()
             
             # Load conversation history (last 5 turns) for multi-turn conversational context
             recent_convs = ConversationService.get_all_conversations(db, skip=0, limit=5, user_id=current_user.id)
@@ -705,7 +746,7 @@ Answer:"""
                     # Send sources and metrics (cached)
                     sources_data = [s.dict() for s in sources]
                     yield f"data: {json.dumps({'sources': sources_data, 'cached': True, 'done': True})}\n\n"
-                    ConversationService.create_conversation(db, request.message, cached_response, current_user.id)
+                    ConversationService.create_conversation(db, chat_data.message, cached_response, current_user.id)
                     return
                 
                 # Use retry logic for LLM generation (CPU inference can be slow)
@@ -735,7 +776,7 @@ Answer:"""
                     
                     # Send sources and metrics (cached)
                     yield f"data: {json.dumps({'sources': [], 'cached': True, 'done': True})}\n\n"
-                    ConversationService.create_conversation(db, request.message, cached_response, current_user.id)
+                    ConversationService.create_conversation(db, chat_data.message, cached_response, current_user.id)
                     return
                 
                 # Use retry logic for LLM generation (CPU inference can be slow)
@@ -785,7 +826,7 @@ Answer:"""
             yield f"data: {json.dumps({'sources': sources_data, 'metrics': metrics, 'cached': False, 'done': True})}\n\n"
             
             # Save conversation to database
-            ConversationService.create_conversation(db, request.message, full_response, current_user.id)
+            ConversationService.create_conversation(db, chat_data.message, full_response, current_user.id)
             
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
@@ -885,7 +926,7 @@ async def delete_conversation_endpoint(conversation_id: int, db: Session = Depen
 # Async document upload endpoint
 @app.post("/upload/async", response_model=AsyncUploadResponse)
 @limiter.limit("10/minute")
-async def upload_document_async(file: UploadFile = File(...)):
+async def upload_document_async(request: Request, file: UploadFile = File(...)):
     """Upload document for async background processing."""
     
     # File size limit: 50MB
@@ -956,128 +997,137 @@ async def get_task_status(task_id: str):
     return TaskStatusResponse(**status)
 
 
-# Document upload endpoint
+# ─── Universal file upload endpoint ────────────────────────────────────────────
+# Accepts ANY file type, saves instantly as memory (no blocking AI calls).
+# Text/PDF content is extracted quickly; video/audio/image just stores metadata.
+
+# File-type categories
+TEXT_TYPES   = {'pdf', 'txt', 'md', 'csv', 'json', 'xml', 'html', 'log', 'py',
+                'js', 'ts', 'jsx', 'tsx', 'java', 'c', 'cpp', 'cs', 'go', 'rs',
+                'docx', 'doc', 'odt', 'rtf'}
+IMAGE_TYPES  = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'svg', 'ico'}
+AUDIO_TYPES  = {'mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma', 'opus'}
+VIDEO_TYPES  = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'wmv', 'mpeg', 'mpg',
+                '3gp', 'ts', 'm4v'}
+DOC_TYPES    = {'pdf', 'txt', 'md', 'csv', 'docx', 'doc', 'rtf', 'odt'}
+
+
+def _get_file_category(ext: str) -> str:
+    ext = ext.lower()
+    if ext in VIDEO_TYPES:  return 'video'
+    if ext in AUDIO_TYPES:  return 'audio'
+    if ext in IMAGE_TYPES:  return 'image'
+    if ext in DOC_TYPES:    return 'document'
+    return 'file'
+
+
+def _format_size(size_bytes: int) -> str:
+    if size_bytes < 1024:           return f"{size_bytes} B"
+    if size_bytes < 1024 ** 2:      return f"{size_bytes / 1024:.1f} KB"
+    if size_bytes < 1024 ** 3:      return f"{size_bytes / 1024 ** 2:.1f} MB"
+    return f"{size_bytes / 1024 ** 3:.1f} GB"
+
+
 @app.post("/upload", response_model=DocumentUploadResponse)
-@limiter.limit("5/minute")
+@limiter.limit("20/minute")
 async def upload_document(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Upload and process a document to extract memories."""
-    
-    if llm is None:
-        raise HTTPException(
-            status_code=500, 
-            detail="AI model not loaded. Please download models using 'python setup_models.py' "
-                  "or place a GGUF model in the models/ directory and update MODEL_PATH in .env"
-        )
-    
-    # File size limit: 25MB for sync processing
-    MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB in bytes
-    
-    # Get file extension
-    file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else ''
-    
-    # Validate file type
-    supported_types = ['pdf', 'txt', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'wav', 'mp3']
-    if file_extension not in supported_types:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Unsupported file type: '{file_extension}'. Supported types: {', '.join(supported_types)}"
-        )
-    
-    # Check file size
+    """Universal upload: accepts ANY file type and saves it instantly as a memory."""
+
+    # Hard limit: 500 MB
+    MAX_FILE_SIZE = 500 * 1024 * 1024
+
+    filename     = file.filename or "unknown"
+    file_ext     = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    category     = _get_file_category(file_ext)
+    upload_time  = datetime.utcnow()
+
     content = await file.read()
     file_size = len(content)
-    
-    if file_size > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large for sync processing. Maximum size is 25MB. Your file is {file_size / (1024 * 1024):.2f}MB. "
-                   f"Please use the async upload endpoint for larger files."
-        )
-    
+
     if file_size == 0:
-        raise HTTPException(
-            status_code=400,
-            detail="File is empty. Please upload a valid file."
-        )
-    
-    # Save uploaded file to temporary location
-    temp_file = None
+        raise HTTPException(status_code=400, detail="File is empty.")
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail=f"File too large ({_format_size(file_size)}). Max 500 MB.")
+
+    # ── Try to extract text for documents/PDFs only ───────────────────────────
+    extracted_text = ""
     temp_file_path = None
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as temp_file:
-            temp_file.write(content)
-            temp_file_path = temp_file.name
-        
-        # Extract text from document
-        extractor = DocumentExtractor()
+    if category in ('document',) or file_ext in TEXT_TYPES:
         try:
-            text = extractor.extract_text(temp_file_path, file_extension, audio_processor)
-        except Exception as e:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Failed to extract text from document: {str(e)}. The file may be corrupted or in an unsupported format."
-            )
-        
-        if not text:
-            raise HTTPException(
-                status_code=400, 
-                detail="No text could be extracted from the document. The file may be empty, corrupted, or contain no readable text."
-            )
-        
-        # Extract memories using local LLM with structured extraction
-        memory_extractor = MemoryExtractor(llm)
-        try:
-            extracted_memories = memory_extractor.extract_memories(text, source_document=file.filename, max_memories=5)
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"AI processing failed: {str(e)}. This may be due to slow CPU inference. Please try again or use async processing."
-            )
-        
-        # Store memories in database using structured extraction
-        created_memories = []
-        for memory_data in extracted_memories:
-            # Use structured memory if available
-            if 'structured_data' in memory_data and memory_data['structured_data']:
-                memory = MemoryService.create_structured_memory(db, memory_data['structured_data'], current_user.id)
-            else:
-                # Fallback to legacy format
-                memory = MemoryService.create_memory(
-                    db,
-                    title=memory_data['title'],
-                    content=memory_data['content'],
-                    tags=memory_data['tags'],
-                    source_document=memory_data.get('source_document'),
-                    user_id=current_user.id
-                )
-            created_memories.append(memory)
-        
-        return DocumentUploadResponse(
-            message=f"Successfully processed document. Extracted {len(created_memories)} memories.",
-            memories_created=len(created_memories),
-            memories=created_memories
-        )
-    
-    except HTTPException:
-        # Re-raise HTTP exceptions as-is
-        raise
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing document: {str(e)}")
-    
-    finally:
-        # Clean up temporary file
-        if temp_file_path and os.path.exists(temp_file_path):
-            try:
-                os.unlink(temp_file_path)
-            except:
-                pass
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_ext}") as tf:
+                tf.write(content)
+                temp_file_path = tf.name
+            extractor = DocumentExtractor()
+            extracted_text = extractor.extract_text(temp_file_path, file_ext, audio_processor) or ""
+        except Exception as ex:
+            print(f"[UPLOAD] Text extraction skipped for {filename}: {ex}")
+        finally:
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.unlink(temp_file_path)
+                except Exception:
+                    pass
+
+    # ── Build the memory content ──────────────────────────────────────────────
+    size_str      = _format_size(file_size)
+    upload_ts_str = upload_time.strftime('%Y-%m-%d %H:%M:%S UTC')
+
+    # Rich metadata block stored as the memory content
+    meta_block = (
+        f"File: {filename}\n"
+        f"Type: {category.upper()} ({file_ext.upper() if file_ext else 'unknown'})\n"
+        f"Size: {size_str}\n"
+        f"Uploaded: {upload_ts_str}\n"
+        f"Uploaded by: {current_user.name} ({current_user.email})\n"
+    )
+
+    if extracted_text:
+        # Truncate very long documents to keep memory manageable
+        preview = extracted_text[:3000] + ("…[truncated]" if len(extracted_text) > 3000 else "")
+        memory_content = meta_block + f"\nContent Preview:\n{preview}"
+    else:
+        memory_content = meta_block + f"\nNote: Content not extracted (binary/media file stored as metadata)."
+
+    # ── Save memory immediately ────────────────────────────────────────────────
+    memory_title = f"[{category.capitalize()}] {filename}"
+    tags         = f"upload,{category},{file_ext}" if file_ext else f"upload,{category}"
+
+    import json as _json
+    metadata_json = _json.dumps({
+        "filename": filename,
+        "file_size_bytes": file_size,
+        "file_size_human": size_str,
+        "file_type": category,
+        "file_extension": file_ext,
+        "upload_timestamp": upload_ts_str,
+        "has_text": bool(extracted_text),
+    })
+
+    memory = MemoryService.create_memory(
+        db,
+        title=memory_title,
+        content=memory_content,
+        tags=tags,
+        metadata=metadata_json,
+        source_document=filename,
+        user_id=current_user.id,
+        type=category,
+    )
+
+    return DocumentUploadResponse(
+        message=f"✅ '{filename}' uploaded and saved as memory.",
+        memories_created=1,
+        memories=[memory],
+    )
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+

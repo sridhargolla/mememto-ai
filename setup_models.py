@@ -43,17 +43,17 @@ def print_header(text: str):
 
 def print_success(text: str):
     """Print success message."""
-    print(f"✓ {text}")
+    print(f"[SUCCESS] {text}")
 
 
 def print_error(text: str):
     """Print error message."""
-    print(f"✗ {text}")
+    print(f"[ERROR] {text}")
 
 
 def print_warning(text: str):
     """Print warning message."""
-    print(f"⚠ {text}")
+    print(f"[WARNING] {text}")
 
 
 def get_models_dir() -> Path:
@@ -165,7 +165,16 @@ def setup_all_models(force: bool = False) -> bool:
     
     models_dir = get_models_dir()
     print(f"Models directory: {models_dir}")
-    print(f"Available space: {models_dir.stat().st_volume_free / (1024**3):.2f}GB")
+    try:
+        free_space = models_dir.stat().st_volume_free / (1024**3)
+        print(f"Available space: {free_space:.2f}GB")
+    except AttributeError:
+        import shutil
+        try:
+            total, used, free = shutil.disk_usage(models_dir)
+            print(f"Available space: {free / (1024**3):.2f}GB")
+        except Exception:
+            print("Available space: Unknown")
     
     success = True
     for model_key in MODELS:

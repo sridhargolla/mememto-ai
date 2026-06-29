@@ -14,11 +14,11 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     # Generate and save a new secret key
     SECRET_KEY = secrets.token_urlsafe(32)
-    print("⚠️  WARNING: No SECRET_KEY provided. Generated a random key.")
+    print("[WARNING] No SECRET_KEY provided. Generated a random key.")
     print(f"   Generated key: {SECRET_KEY}")
     print("   Add this to your .env file as SECRET_KEY for persistence.")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 2 hours (reduced from 7 days for security)
+ACCESS_TOKEN_EXPIRE_MINUTES = 43200  # 30 days
 
 
 def hash_password(password: str) -> str:
