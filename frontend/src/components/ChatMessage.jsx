@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Copy, Check, Brain, User, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, Check, Brain, User, ExternalLink, ChevronDown, ChevronUp, Edit2 } from 'lucide-react';
 
 function CopyButton({ text, className = '' }) {
   const [copied, setCopied] = useState(false);
@@ -158,12 +158,15 @@ function MetricsBadge({ metrics }) {
   );
 }
 
-function ChatMessage({ message, isLast, isLoading, onRegenerate }) {
+function ChatMessage({ message, isLast, isLoading, onRegenerate, onEdit, onContinue }) {
   const isUser = message.role === 'user';
   const isEmpty = !message.content && isLoading && isLast;
   const time = message.timestamp
     ? new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-5 animate-fade-in group`}>
@@ -194,12 +197,40 @@ function ChatMessage({ message, isLast, isLoading, onRegenerate }) {
               : 'glass-card text-slate-200 rounded-tl-sm'
           }`}>
 
-            {/* Typing indicator */}
+            {/* Typing indicator or Edit input or Markdown content */}
             {isEmpty ? (
               <div className="flex items-center gap-1.5 py-1">
                 <span className="w-2 h-2 rounded-full bg-purple-400 typing-dot" />
                 <span className="w-2 h-2 rounded-full bg-purple-400 typing-dot" />
                 <span className="w-2 h-2 rounded-full bg-purple-400 typing-dot" />
+              </div>
+            ) : isEditing ? (
+              <div className="flex flex-col gap-2 w-full min-w-[260px] max-w-lg">
+                <textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  className="w-full bg-slate-900/80 border border-purple-500/50 rounded-xl text-sm p-3 text-white focus:outline-none"
+                  rows={2}
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => { setIsEditing(false); setEditContent(message.content); }}
+                    className="px-2.5 py-1 rounded-lg text-[11px] bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (onEdit && editContent.trim()) {
+                        onEdit(editContent.trim());
+                      }
+                      setIsEditing(false);
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-[11px] bg-purple-600 text-white hover:bg-purple-500 transition"
+                  >
+                    Save & Submit
+                  </button>
+                </div>
               </div>
             ) : isUser ? (
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
@@ -241,14 +272,32 @@ function ChatMessage({ message, isLast, isLoading, onRegenerate }) {
             isUser ? 'justify-end' : 'justify-start'
           }`}>
             <span className="text-[10px] text-slate-600">{time}</span>
+            {isUser && message.content && !isEditing && onEdit && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="text-slate-500 hover:text-slate-200 transition p-1"
+                title="Edit message"
+              >
+                <Edit2 size={11} />
+              </button>
+            )}
             {!isUser && message.content && (
               <>
                 <CopyButton text={message.content} />
-                {isLast && onRegenerate && (
+                {isLast && onContinue && !isLoading && (
+                  <button
+                    onClick={onContinue}
+                    className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-white/5 text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 border border-white/5 transition"
+                    title="Continue response generation"
+                  >
+                    Continue
+                  </button>
+                )}
+                {isLast && onRegenerate && !isLoading && (
                   <button
                     onClick={onRegenerate}
-                    className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 border border-white/5 transition"
-                    aria-label="Regenerate response"
+                    className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-white/5 text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 border border-white/5 transition"
+                    title="Regenerate response"
                   >
                     ↺ Regenerate
                   </button>
