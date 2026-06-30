@@ -22,9 +22,14 @@ class EmbeddingService:
     
     def _load_model(self):
         """Load the local sentence-transformers model."""
-        # Check if embeddings are disabled or if system RAM is very low (< 1.5 GB)
+        # Check if embeddings are disabled, running on Render, or if system RAM is very low (< 1.5 GB)
         disable_embeddings = os.getenv("DISABLE_EMBEDDINGS", "false").lower() == "true"
+        on_render = os.getenv("RENDER", "false").lower() == "true"
         
+        if on_render:
+            print("Running on Render container environment. Automatically disabling sentence-transformers to save memory.")
+            disable_embeddings = True
+            
         try:
             import psutil
             total_ram_gb = psutil.virtual_memory().total / (1024 ** 3)
