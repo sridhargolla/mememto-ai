@@ -70,6 +70,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.staticfiles import StaticFiles
+uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
@@ -230,6 +235,9 @@ else:
 # Pydantic models
 class ChatRequest(BaseModel):
     message: str
+    session_id: Optional[str] = None
+    language: Optional[str] = 'en'
+    continue_generating: Optional[bool] = False
 
 
 class SourceCitation(BaseModel):
@@ -749,8 +757,12 @@ async def chat(request: Request, chat_data: ChatRequest, current_user: User = De
     
     async def stream_response():
         try:
-            # Initialize AI modules
-            conversation_intel = ConversationIntelligence(db, current_user.id)
+            import uuid
+            session_id = chat_data.session_id or str(uuid.uuid4())
+            target_language = chat_data.language or 'en'
+            
+            # Initialize AI modules with session_id
+            conversation_intel = ConversationIntelligence(db, current_user.id, session_id=session_id)
             personality = PersonalityEngine()
             prompt_builder = PromptBuilder(personality)
             doc_retriever = DocumentAwareRetriever(db, current_user.id)
@@ -774,7 +786,7 @@ async def chat(request: Request, chat_data: ChatRequest, current_user: User = De
             intelligence = conversation_intel.process_message(sanitized_message)
             
             # Detect language
-            detected_language = detect_language(sanitized_message)
+            detected_language = chat_data.language or detect_language(sanitized_message) or 'en'
             
             # Emit progress updates
             has_documents = doc_retriever.has_documents()
@@ -819,8 +831,27 @@ async def chat(request: Request, chat_data: ChatRequest, current_user: User = De
                     language=detected_language
                 )
             
+            # If continue_generating is requested, adjust prompt to extend the last answer
+            if chat_data.continue_generating and session_id:
+                last_conv = db.query(Conversation).filter(
+                    Conversation.user_id == current_user.id,
+                    Conversation.session_id == session_id
+                ).order_by(Conversation.timestamp.desc()).first()
+                if last_conv:
+                    prompt = prompt_builder.build_prompt(
+                        last_conv.question,
+                        intelligence,
+                        formatted_memories,
+                        intelligence['history'][:-1],
+                        language=detected_language
+                    )
+                    prompt += f"\nContinue writing the response from the following text (do not repeat it, just continue): {last_conv.answer}"
+            
             # Check cache
-            cached_response = response_cache.get(prompt, max_tokens=512, temperature=0.7)
+            cached_response = None
+            if not chat_data.continue_generating:
+                cached_response = response_cache.get(prompt, max_tokens=512, temperature=0.7)
+                
             if cached_response:
                 # Stream cached response
                 for token in cached_response:
@@ -845,8 +876,20 @@ async def chat(request: Request, chat_data: ChatRequest, current_user: User = De
                     intelligence['history']
                 )
                 
-                yield f"data: {json.dumps({'sources': sources, 'followups': followups, 'cached': True, 'done': True})}\n\n"
-                ConversationService.create_conversation(db, chat_data.message, cached_response, current_user.id)
+                # Fetch or generate title for the session
+                existing_conv = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+                if existing_conv:
+                    title = existing_conv.title
+                else:
+                    import re
+                    clean_q = chat_data.message.strip()
+                    clean_q = re.sub(r'[#*`_\-\n\r\t]', ' ', clean_q).strip()
+                    title = clean_q[:40] + ("..." if len(clean_q) > 40 else "")
+                    if not title:
+                        title = "New Chat"
+                
+                yield f"data: {json.dumps({'sources': sources, 'followups': followups, 'cached': True, 'done': True, 'session_id': session_id, 'title': title})}\n\n"
+                ConversationService.create_conversation(db, chat_data.message, cached_response, current_user.id, session_id=session_id, title=title)
                 return
             
             # Generate response with retry logic
@@ -879,9 +922,6 @@ async def chat(request: Request, chat_data: ChatRequest, current_user: User = De
                         'relevance_score': mem['enhanced_score']
                     })
             
-            if sources:
-                formatted_response = response_formatter.add_source_attribution(formatted_response, sources)
-            
             # Generate follow-up questions
             followups = followup_gen.generate_followups(
                 sanitized_message,
@@ -890,9 +930,6 @@ async def chat(request: Request, chat_data: ChatRequest, current_user: User = De
                 has_documents,
                 intelligence['history']
             )
-            
-            if followups:
-                formatted_response = response_formatter.add_followup_suggestions(formatted_response, followups)
             
             # Cache the response
             response_cache.set(prompt, full_response, max_tokens=512, temperature=0.7)
@@ -918,11 +955,32 @@ async def chat(request: Request, chat_data: ChatRequest, current_user: User = De
                 "model": llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path
             }
             
-            # Send final data
-            yield f"data: {json.dumps({'sources': sources, 'followups': followups, 'metrics': metrics, 'cached': False, 'done': True})}\n\n"
+            # Fetch or generate title for the session
+            existing_conv = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            if existing_conv:
+                title = existing_conv.title
+            else:
+                import re
+                clean_q = chat_data.message.strip()
+                clean_q = re.sub(r'[#*`_\-\n\r\t]', ' ', clean_q).strip()
+                title = clean_q[:40] + ("..." if len(clean_q) > 40 else "")
+                if not title:
+                    title = "New Chat"
             
-            # Save conversation
-            ConversationService.create_conversation(db, chat_data.message, formatted_response, current_user.id)
+            # Send final data
+            yield f"data: {json.dumps({'sources': sources, 'followups': followups, 'metrics': metrics, 'cached': False, 'done': True, 'session_id': session_id, 'title': title})}\n\n"
+            
+            # Save or append conversation
+            if chat_data.continue_generating:
+                last_conv = db.query(Conversation).filter(
+                    Conversation.user_id == current_user.id,
+                    Conversation.session_id == session_id
+                ).order_by(Conversation.timestamp.desc()).first()
+                if last_conv:
+                    last_conv.answer += formatted_response
+                    db.commit()
+            else:
+                ConversationService.create_conversation(db, chat_data.message, formatted_response, current_user.id, session_id=session_id, title=title)
             
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
@@ -1017,6 +1075,131 @@ async def delete_conversation_endpoint(conversation_id: int, db: Session = Depen
     if not ConversationService.delete_conversation(db, conversation_id):
         raise HTTPException(status_code=404, detail="Conversation not found")
     return {"message": "Conversation deleted successfully"}
+
+
+# Pydantic schemas for conversation session endpoints
+class SessionRenameRequest(BaseModel):
+    title: str
+
+class SessionPinRequest(BaseModel):
+    is_pinned: bool
+
+class LanguageUpdateRequest(BaseModel):
+    preferred_language: str
+
+@app.get("/conversations/sessions")
+async def get_conversation_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get all conversation sessions for the current user, ordered by pin status and recency."""
+    from sqlalchemy import func
+    
+    # Group by session_id, get the title, pin status, and the maximum timestamp (latest turn)
+    subquery = db.query(
+        Conversation.session_id,
+        Conversation.title,
+        Conversation.is_pinned,
+        func.max(Conversation.timestamp).label("latest_time")
+    ).filter(
+        Conversation.user_id == current_user.id,
+        Conversation.session_id.isnot(None)
+    ).group_by(
+        Conversation.session_id
+    ).subquery()
+    
+    # Query from the subquery and order
+    sessions = db.query(subquery).order_by(
+        subquery.c.is_pinned.desc(),
+        subquery.c.latest_time.desc()
+    ).all()
+    
+    result = []
+    for s in sorted(sessions, key=lambda x: (x.is_pinned, x.latest_time or datetime.min), reverse=True):
+        result.append({
+            "session_id": s.session_id,
+            "title": s.title or "New Chat",
+            "is_pinned": bool(s.is_pinned),
+            "timestamp": s.latest_time.isoformat() if s.latest_time else None
+        })
+    return result
+
+@app.get("/conversations/session/{session_id}")
+async def get_session_messages(session_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get all messages for a specific conversation session."""
+    convs = db.query(Conversation).filter(
+        Conversation.user_id == current_user.id,
+        Conversation.session_id == session_id
+    ).order_by(Conversation.timestamp.asc()).all()
+    
+    result = []
+    for c in convs:
+        # User message
+        result.append({
+            "role": "user",
+            "content": c.question,
+            "timestamp": c.timestamp.isoformat()
+        })
+        # Assistant response
+        result.append({
+            "role": "assistant",
+            "content": c.answer,
+            "timestamp": c.timestamp.isoformat()
+        })
+    return result
+
+@app.post("/conversations/session/{session_id}/rename")
+async def rename_session(session_id: str, rename_data: SessionRenameRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Rename a conversation session."""
+    convs = db.query(Conversation).filter(
+        Conversation.user_id == current_user.id,
+        Conversation.session_id == session_id
+    ).all()
+    
+    if not convs:
+        raise HTTPException(status_code=404, detail="Conversation session not found")
+        
+    for c in convs:
+        c.title = rename_data.title
+        
+    db.commit()
+    return {"message": "Session renamed successfully", "session_id": session_id, "title": rename_data.title}
+
+@app.post("/conversations/session/{session_id}/pin")
+async def pin_session(session_id: str, pin_data: SessionPinRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Pin or unpin a conversation session."""
+    convs = db.query(Conversation).filter(
+        Conversation.user_id == current_user.id,
+        Conversation.session_id == session_id
+    ).all()
+    
+    if not convs:
+        raise HTTPException(status_code=404, detail="Conversation session not found")
+        
+    pin_val = 1 if pin_data.is_pinned else 0
+    for c in convs:
+        c.is_pinned = pin_val
+        
+    db.commit()
+    return {"message": "Session pin status updated successfully", "session_id": session_id, "is_pinned": pin_data.is_pinned}
+
+@app.delete("/conversations/session/{session_id}")
+async def delete_session(session_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete all messages for a specific conversation session."""
+    deleted = db.query(Conversation).filter(
+        Conversation.user_id == current_user.id,
+        Conversation.session_id == session_id
+    ).delete()
+    
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Conversation session not found")
+        
+    db.commit()
+    return {"message": "Session deleted successfully", "session_id": session_id}
+
+@app.put("/user/language")
+async def update_user_language(lang_data: LanguageUpdateRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update preferred language for the current authenticated user."""
+    current_user.preferred_language = lang_data.preferred_language
+    db.commit()
+    return {"message": "Language preference updated successfully", "preferred_language": lang_data.preferred_language}
 
 
 # Documents endpoint
@@ -1219,6 +1402,14 @@ async def upload_document(
         raise HTTPException(status_code=400, detail="File is empty.")
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail=f"File too large ({_format_size(file_size)}). Max 500 MB.")
+
+    # Save the file persistently to backend/uploads
+    persistent_file_path = os.path.join(uploads_dir, filename)
+    try:
+        with open(persistent_file_path, "wb") as f:
+            f.write(content)
+    except Exception as e:
+        print(f"[UPLOAD] Failed to save persistent file: {e}")
 
     # ── Try to extract text for documents/PDFs only ───────────────────────────
     extracted_text = ""
