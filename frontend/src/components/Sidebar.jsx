@@ -23,8 +23,8 @@ function Sidebar({ isOpen, onClose }) {
     { path: '/dashboard/documents',    icon: FileText,        label: t('navigation.documents'),   color: 'text-blue-400' },
     { path: '/dashboard/memories',     icon: Brain,           label: t('navigation.memories'),    color: 'text-violet-400' },
     { path: '/dashboard/timeline',     icon: Clock,           label: t('navigation.timeline'),    color: 'text-indigo-400' },
-    { path: '/dashboard/status',       icon: Activity,        label: 'System Status',             color: 'text-emerald-400' },
-    { path: '/dashboard/performance',  icon: Cpu,             label: 'Performance',               color: 'text-amber-400' },
+    { path: '/dashboard/status',       icon: Activity,        label: t('navigation.systemStatus'), color: 'text-emerald-400' },
+    { path: '/dashboard/performance',  icon: Cpu,             label: t('navigation.performance'),  color: 'text-amber-400' },
     { path: '/dashboard/privacy',      icon: ShieldCheck,     label: t('navigation.privacy'),     color: 'text-rose-400' },
     { path: '/dashboard/settings',     icon: Settings,        label: t('navigation.settings'),    color: 'text-slate-400' },
   ];
