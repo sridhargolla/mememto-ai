@@ -84,11 +84,15 @@ class ContextManager:
         self.context_window: List[str] = []
         self.entity_memory: Dict[str, str] = {}
     
-    def load_recent_history(self, limit: int = 10) -> List[Dict]:
+    def load_recent_history(self, limit: int = 10, session_id: Optional[str] = None) -> List[Dict]:
         """Load recent conversation history."""
-        recent_convs = self.db.query(Conversation).filter(
+        query = self.db.query(Conversation).filter(
             Conversation.user_id == self.user_id
-        ).order_by(Conversation.timestamp.desc()).limit(limit).all()
+        )
+        if session_id:
+            query = query.filter(Conversation.session_id == session_id)
+            
+        recent_convs = query.order_by(Conversation.timestamp.desc()).limit(limit).all()
         
         self.conversation_history = [
             {
@@ -195,9 +199,9 @@ class ContextManager:
 class ConversationIntelligence:
     """Main conversation intelligence orchestrator."""
     
-    def __init__(self, db: Session, user_id: int):
-        self.db = db
+    def __init__(self, db: Session, user_id: int, session_id: Optional[str] = None):
         self.user_id = user_id
+        self.session_id = session_id
         self.intent_detector = IntentDetector()
         self.context_manager = ContextManager(db, user_id)
     
@@ -210,7 +214,7 @@ class ConversationIntelligence:
         is_follow_up = self.intent_detector.detect_follow_up(message)
         
         # Load conversation history
-        history = self.context_manager.load_recent_history()
+        history = self.context_manager.load_recent_history(session_id=self.session_id)
         
         # Extract entities
         entities = self.context_manager.extract_entities(message)
