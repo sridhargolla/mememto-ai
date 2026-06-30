@@ -9,7 +9,7 @@ import {
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 
-const API_BASE = '/api';
+import API_BASE from '../config/api';
 
 // ── File type helpers ──────────────────────────────────────────────────────────
 function getFileIcon(filename) {

@@ -9,7 +9,7 @@ import Navbar from './components/Navbar';
 import BackgroundLayout from './components/BackgroundLayout';
 import { backgroundImages } from './constants/backgrounds';
 
-const API_BASE = '/api';
+import API_BASE from './config/api';
 
 function MetricBadge({ type }) {
   const map = {

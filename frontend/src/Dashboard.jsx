@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Timeline from './Timeline';
 import SystemStatus from './SystemStatus';
+import API_BASE from './config/api';
 
 function Dashboard() {
   const [messages, setMessages] = useState([]);
@@ -32,7 +33,7 @@ function Dashboard() {
     setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch(`${API_BASE}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ function Dashboard() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

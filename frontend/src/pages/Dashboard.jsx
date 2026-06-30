@@ -11,7 +11,7 @@ import {
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 
-const API_BASE = '/api';
+import API_BASE from '../config/api';
 
 function AnimatedNumber({ value, duration = 1000 }) {
   const [display, setDisplay] = useState(0);

@@ -9,7 +9,7 @@ import Navbar from './components/Navbar';
 import BackgroundLayout from './components/BackgroundLayout';
 import { backgroundImages } from './constants/backgrounds';
 
-const API_BASE = '/api';
+import API_BASE from './config/api';
 
 function StatusIndicator({ ok, label }) {
   return (
@@ -108,7 +108,7 @@ function SystemStatus() {
         setError(`Server returned ${res.status}`);
       }
     } catch {
-      setError('Cannot connect to backend at localhost:8000');
+      setError(`Cannot connect to backend at ${API_BASE}`);
     } finally {
       setLoading(false);
     }
