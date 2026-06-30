@@ -85,7 +85,7 @@ class LocalLLM:
                 prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                stop=["User:", "Assistant:", "user:", "assistant:"],
+                stop=["User:", "Assistant:", "user:", "assistant:", "<|im_end|>", "<|im_start|>"],
                 echo=False
             )
             end_time = time.perf_counter()
@@ -137,7 +137,7 @@ class LocalLLM:
                 prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                stop=["User:", "Assistant:", "user:", "assistant:"],
+                stop=["User:", "Assistant:", "user:", "assistant:", "<|im_end|>", "<|im_start|>"],
                 echo=False,
                 stream=True
             )
