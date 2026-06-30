@@ -62,11 +62,11 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (tokenData, userData, rememberMe = false) => {
+  const login = (tokenData, userData, rememberMe = true) => {
+    // Always persist to localStorage so all pages can access the token directly
+    localStorage.setItem('token', tokenData);
+    localStorage.setItem('user', JSON.stringify(userData));
     if (rememberMe) {
-      localStorage.setItem('token', tokenData);
-      localStorage.setItem('user', JSON.stringify(userData));
-    } else {
       sessionStorage.setItem('token', tokenData);
       sessionStorage.setItem('user', JSON.stringify(userData));
     }
