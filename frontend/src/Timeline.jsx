@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Sidebar from './components/Sidebar'
 import BackgroundLayout from './components/BackgroundLayout'
 import { backgroundImages } from './constants/backgrounds'
+import API_BASE from './config/api'
 
 const TYPE_ICONS = {
   person: '👤',
@@ -50,7 +51,7 @@ function Timeline() {
   const fetchMemories = async () => {
     const token = localStorage.getItem('token')
     try {
-      const response = await fetch('/api/memories?limit=100', {
+      const response = await fetch(`${API_BASE}/memories?limit=100`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

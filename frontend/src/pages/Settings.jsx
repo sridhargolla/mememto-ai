@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import BackgroundLayout from '../components/BackgroundLayout';
 import { backgroundImages } from '../constants/backgrounds';
+import API_BASE from '../config/api';
 
 function Settings() {
   const { t } = useTranslation();
@@ -22,7 +23,7 @@ function Settings() {
     setUser(userData);
     
     // Fetch AI status
-    fetch('/api/status')
+    fetch(`${API_BASE}/status`)
       .then(res => res.json())
       .then(data => setAiStatus(data))
       .catch(err => console.error('Failed to fetch AI status:', err));

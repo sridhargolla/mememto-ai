@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import BackgroundLayout from './components/BackgroundLayout';
 import { backgroundImages } from './constants/backgrounds';
+import API_BASE from './config/api';
 
 function Login() {
   const { t } = useTranslation();
@@ -20,7 +21,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

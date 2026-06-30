@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import BackgroundLayout from './components/BackgroundLayout';
 import { backgroundImages } from './constants/backgrounds';
+import API_BASE from './config/api';
 
 function Signup() {
   const { t } = useTranslation();
@@ -33,7 +34,7 @@ function Signup() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch(`${API_BASE}/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
