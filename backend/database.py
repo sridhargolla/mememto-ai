@@ -63,6 +63,31 @@ def init_db():
             # Base.metadata.create_all will handle this, but we log it
         else:
             print("Migration: performance_metrics table already exists")
+
+        # Check existing columns in conversations table
+        result_conv = conn.execute(text("PRAGMA table_info(conversations)"))
+        conv_columns = [row[1] for row in result_conv.fetchall()]
+        
+        if "session_id" not in conv_columns:
+            try:
+                conn.execute(text("ALTER TABLE conversations ADD COLUMN session_id VARCHAR(50)"))
+                print("Migration: Added 'session_id' column to conversations table")
+            except Exception as e:
+                print(f"Migration warning (session_id): {e}")
+                
+        if "title" not in conv_columns:
+            try:
+                conn.execute(text("ALTER TABLE conversations ADD COLUMN title VARCHAR(255)"))
+                print("Migration: Added 'title' column to conversations table")
+            except Exception as e:
+                print(f"Migration warning (title): {e}")
+                
+        if "is_pinned" not in conv_columns:
+            try:
+                conn.execute(text("ALTER TABLE conversations ADD COLUMN is_pinned INTEGER DEFAULT 0"))
+                print("Migration: Added 'is_pinned' column to conversations table")
+            except Exception as e:
+                print(f"Migration warning (is_pinned): {e}")
         
         # Commit changes (SQLAlchemy engine connection handles this, but commit is good practice)
         conn.commit()
