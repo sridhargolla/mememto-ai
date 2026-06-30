@@ -7,7 +7,7 @@ import ChatMessage from '../components/ChatMessage';
 import BackgroundLayout from '../components/BackgroundLayout';
 import { backgroundImages } from '../constants/backgrounds';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '/api';
 
 const SUGGESTIONS = [
   { icon: <Brain size={16} />, text: 'What are my recent memories?' },
