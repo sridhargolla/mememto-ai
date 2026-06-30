@@ -5,6 +5,7 @@
 > A CPU-first, offline AI system that transforms unstructured human data into structured, searchable knowledge using local AI models.
 
 ---
+Live link : https://memento-ai-1.onrender.com
 
 ## 🚀 Overview
 
