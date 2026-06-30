@@ -88,13 +88,13 @@ class ContextManager:
         """Load recent conversation history."""
         recent_convs = self.db.query(Conversation).filter(
             Conversation.user_id == self.user_id
-        ).order_by(Conversation.created_at.desc()).limit(limit).all()
+        ).order_by(Conversation.timestamp.desc()).limit(limit).all()
         
         self.conversation_history = [
             {
                 'question': conv.question,
                 'answer': conv.answer,
-                'timestamp': conv.created_at.isoformat()
+                'timestamp': conv.timestamp.isoformat()
             }
             for conv in reversed(recent_convs)
         ]
