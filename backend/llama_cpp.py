@@ -75,7 +75,9 @@ try:
                 lib.llama_kv_cache_clear(memory) if hasattr(lib, "llama_kv_cache_clear") else None
             )
             _real.llama_memory_seq_rm = lambda memory, seq_id, p0, p1: (
-                lib.llama_kv_cache_seq_rm(memory, seq_id, p0, p1) if hasattr(lib, "llama_kv_cache_seq_rm") else False
+                lib.llama_kv_cache_seq_rm(memory, seq_id, p0, p1)
+                if hasattr(lib, "llama_kv_cache_seq_rm")
+                else False
             )
             _real.llama_memory_seq_cp = lambda memory, seq_id_src, seq_id_dst, p0, p1: (
                 lib.llama_kv_cache_seq_cp(memory, seq_id_src, seq_id_dst, p0, p1)
@@ -83,7 +85,9 @@ try:
                 else None
             )
             _real.llama_memory_seq_keep = lambda memory, seq_id: (
-                lib.llama_kv_cache_seq_keep(memory, seq_id) if hasattr(lib, "llama_kv_cache_seq_keep") else None
+                lib.llama_kv_cache_seq_keep(memory, seq_id)
+                if hasattr(lib, "llama_kv_cache_seq_keep")
+                else None
             )
             _real.llama_memory_seq_add = lambda memory, seq_id, p0, p1, shift: (
                 lib.llama_kv_cache_seq_add(memory, seq_id, p0, p1, shift)

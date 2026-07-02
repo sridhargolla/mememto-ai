@@ -13,7 +13,6 @@ import os
 import sqlite3
 
 import bcrypt
-
 from database import init_db
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", "./memento.db")
@@ -42,7 +41,8 @@ def migrate():
 
         # 1. Create users table
         print("Creating users table...")
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name VARCHAR(255) NOT NULL,
@@ -50,13 +50,16 @@ def migrate():
                 password_hash VARCHAR(255) NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
 
         # Create index on email
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_users_email
             ON users(email)
-        """)
+        """
+        )
 
         # 2. Add user_id column to memories table
         print("Adding user_id to memories table...")
@@ -64,14 +67,18 @@ def migrate():
         columns = [column[1] for column in cursor.fetchall()]
 
         if "user_id" not in columns:
-            cursor.execute("""
+            cursor.execute(
+                """
                 ALTER TABLE memories
                 ADD COLUMN user_id INTEGER
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE INDEX idx_memories_user_id
                 ON memories(user_id)
-            """)
+            """
+            )
             print("  - user_id column added to memories")
         else:
             print("  - user_id column already exists in memories")
@@ -82,14 +89,18 @@ def migrate():
         columns = [column[1] for column in cursor.fetchall()]
 
         if "user_id" not in columns:
-            cursor.execute("""
+            cursor.execute(
+                """
                 ALTER TABLE conversations
                 ADD COLUMN user_id INTEGER
-            """)
-            cursor.execute("""
+            """
+            )
+            cursor.execute(
+                """
                 CREATE INDEX idx_conversations_user_id
                 ON conversations(user_id)
-            """)
+            """
+            )
             print("  - user_id column added to conversations")
         else:
             print("  - user_id column already exists in conversations")

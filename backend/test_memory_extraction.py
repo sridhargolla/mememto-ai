@@ -89,7 +89,9 @@ def test_memory_extractor_service():
         """
 
         print("\nExtracting memories from sample text...")
-        memories = extractor.extract_memories(sample_text, source_document="test.txt", max_memories=3)
+        memories = extractor.extract_memories(
+            sample_text, source_document="test.txt", max_memories=3
+        )
 
         print(f"✓ Extracted {len(memories)} memories")
 

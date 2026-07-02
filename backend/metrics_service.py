@@ -1,9 +1,9 @@
 from typing import Any
 
 from sqlalchemy.orm import Session
+from system_monitor import SystemMonitor
 
 from models import PerformanceMetrics
-from system_monitor import SystemMonitor
 
 
 class MetricsService:
@@ -159,7 +159,10 @@ class MetricsService:
         )
 
     def get_metrics(
-        self, metric_type: str | None = None, user_id: int | None = None, limit: int = 100
+        self,
+        metric_type: str | None = None,
+        user_id: int | None = None,
+        limit: int = 100,
     ) -> list[PerformanceMetrics]:
         """
         Retrieve metrics with optional filtering.
@@ -182,7 +185,9 @@ class MetricsService:
 
         return query.order_by(PerformanceMetrics.timestamp.desc()).limit(limit).all()
 
-    def get_aggregated_metrics(self, metric_type: str, user_id: int | None = None) -> dict[str, Any]:
+    def get_aggregated_metrics(
+        self, metric_type: str, user_id: int | None = None
+    ) -> dict[str, Any]:
         """
         Get aggregated statistics for a metric type.
 
@@ -214,9 +219,9 @@ class MetricsService:
         if result:
             return {
                 "count": result.count,
-                "avg_duration": float(result.avg_duration) if result.avg_duration else 0,
-                "min_duration": float(result.min_duration) if result.min_duration else 0,
-                "max_duration": float(result.max_duration) if result.max_duration else 0,
+                "avg_duration": (float(result.avg_duration) if result.avg_duration else 0),
+                "min_duration": (float(result.min_duration) if result.min_duration else 0),
+                "max_duration": (float(result.max_duration) if result.max_duration else 0),
                 "avg_memory_mb": float(result.avg_memory) if result.avg_memory else 0,
                 "avg_cpu_percent": float(result.avg_cpu) if result.avg_cpu else 0,
             }
@@ -230,7 +235,9 @@ class MetricsService:
             "avg_cpu_percent": 0,
         }
 
-    def get_recent_inference_stats(self, user_id: int | None = None, limit: int = 10) -> list[dict[str, Any]]:
+    def get_recent_inference_stats(
+        self, user_id: int | None = None, limit: int = 10
+    ) -> list[dict[str, Any]]:
         """
         Get recent inference statistics.
 
@@ -269,7 +276,11 @@ class MetricsService:
 
         cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
 
-        deleted = self.db.query(PerformanceMetrics).filter(PerformanceMetrics.timestamp < cutoff_date).delete()
+        deleted = (
+            self.db.query(PerformanceMetrics)
+            .filter(PerformanceMetrics.timestamp < cutoff_date)
+            .delete()
+        )
 
         self.db.commit()
 

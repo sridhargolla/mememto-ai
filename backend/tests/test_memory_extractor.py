@@ -5,7 +5,6 @@ Tests JSON extraction, validation, and error handling without requiring actual L
 """
 
 import pytest
-
 from memory_extractor_service import MemoryExtractorService
 from memory_schema import MemorySchema
 
@@ -166,7 +165,12 @@ class TestMemoryExtractorService:
             "type": "experience",
             "title": "Test",
             "summary": "A test memory",
-            "entities": {"people": [], "organizations": [], "locations": [], "skills": []},
+            "entities": {
+                "people": [],
+                "organizations": [],
+                "locations": [],
+                "skills": [],
+            },
             "time": {"start": None, "end": None},
             "importance": "medium",
             "source_documents": [],
@@ -180,7 +184,12 @@ class TestMemoryExtractorService:
             "type": "invalid_type",
             "title": "Test",
             "summary": "A test memory",
-            "entities": {"people": [], "organizations": [], "locations": [], "skills": []},
+            "entities": {
+                "people": [],
+                "organizations": [],
+                "locations": [],
+                "skills": [],
+            },
             "time": {"start": None, "end": None},
             "importance": "medium",
             "source_documents": [],

@@ -58,7 +58,9 @@ def init_db():
                 print(f"Migration warning (language): {e}")
 
         # Check if performance_metrics table exists
-        result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance_metrics'"))
+        result = conn.execute(
+            text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance_metrics'")
+        )
         perf_table_exists = result.fetchone() is not None
 
         if not perf_table_exists:
@@ -87,7 +89,9 @@ def init_db():
 
         if "is_pinned" not in conv_columns:
             try:
-                conn.execute(text("ALTER TABLE conversations ADD COLUMN is_pinned INTEGER DEFAULT 0"))
+                conn.execute(
+                    text("ALTER TABLE conversations ADD COLUMN is_pinned INTEGER DEFAULT 0")
+                )
                 print("Migration: Added 'is_pinned' column to conversations table")
             except Exception as e:
                 print(f"Migration warning (is_pinned): {e}")

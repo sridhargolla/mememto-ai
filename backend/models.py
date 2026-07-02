@@ -31,7 +31,9 @@ class User(Base):
 
     # Relationships
     memories = relationship("Memory", back_populates="user", cascade="all, delete-orphan")
-    conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
+    conversations = relationship(
+        "Conversation", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Memory(Base):
@@ -122,7 +124,9 @@ class PerformanceMetrics(Base):
     __tablename__ = "performance_metrics"
 
     id = Column(Integer, primary_key=True, index=True)
-    metric_type = Column(String(50), nullable=False, index=True)  # model_load, inference, document_process
+    metric_type = Column(
+        String(50), nullable=False, index=True
+    )  # model_load, inference, document_process
     metric_name = Column(String(255), nullable=True)  # e.g., "Qwen2.5-3B-Instruct"
     duration_seconds = Column(Float, nullable=False)  # Time taken
     memory_usage_mb = Column(Float, nullable=True)  # Memory usage during operation

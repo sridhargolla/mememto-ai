@@ -154,7 +154,9 @@ Text to analyze:
 JSON Output:"""
         return prompt
 
-    def _parse_memories_from_response(self, response: str, source_document: str | None = None) -> list[dict[str, Any]]:
+    def _parse_memories_from_response(
+        self, response: str, source_document: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Parse the LLM response into structured memory data with enhanced error handling.
         """
@@ -226,7 +228,9 @@ JSON Output:"""
                 if not isinstance(memories_data, list):
                     memories_data = [memories_data]
                 # Re-run validation
-                return self._parse_memories_from_response(json.dumps(memories_data), source_document)
+                return self._parse_memories_from_response(
+                    json.dumps(memories_data), source_document
+                )
             except Exception as recovery_error:
                 print(f"Recovery failed: {recovery_error}")
                 return []

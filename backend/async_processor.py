@@ -41,7 +41,7 @@ class ProcessingTask:
             "result": self.result,
             "error": self.error,
             "created_at": self.created_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": (self.completed_at.isoformat() if self.completed_at else None),
         }
 
 
@@ -79,7 +79,7 @@ class AsyncProcessor:
                     await self._process_task(task)
 
                 self.queue.task_done()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except Exception as e:
                 print(f"Worker error: {e}")

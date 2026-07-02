@@ -17,14 +17,19 @@ class Entities(BaseModel):
 class TimeInfo(BaseModel):
     """Time information for the memory."""
 
-    start: str | None = Field(None, description="Start time or date (ISO format or natural language)")
+    start: str | None = Field(
+        None, description="Start time or date (ISO format or natural language)"
+    )
     end: str | None = Field(None, description="End time or date (ISO format or natural language)")
 
 
 class MemorySchema(BaseModel):
     """Structured memory schema for intelligent memory extraction."""
 
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for the memory")
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique identifier for the memory",
+    )
     type: str = Field(
         ...,
         description="Type of memory: person, event, experience, project, education, skill, document, organization",
@@ -34,13 +39,19 @@ class MemorySchema(BaseModel):
     entities: Entities = Field(default_factory=Entities, description="Extracted entities")
     time: TimeInfo = Field(default_factory=TimeInfo, description="Time information")
     importance: str = Field(default="medium", description="Importance level: low, medium, high")
-    source_documents: list[str] = Field(default_factory=list, description="Source document names or IDs")
+    source_documents: list[str] = Field(
+        default_factory=list, description="Source document names or IDs"
+    )
 
     # Phase 2 MVP Specific Fields
-    organization: str | None = Field(None, description="Organization name (for experience, project, education, etc.)")
+    organization: str | None = Field(
+        None, description="Organization name (for experience, project, education, etc.)"
+    )
     duration: str | None = Field(None, description="Duration or date range")
     skills: list[str] | None = Field(default_factory=list, description="List of skills associated")
-    projects: list[str] | None = Field(default_factory=list, description="List of projects associated")
+    projects: list[str] | None = Field(
+        default_factory=list, description="List of projects associated"
+    )
     source: str | None = Field(None, description="Source file name")
 
     @field_validator("type", mode="before")

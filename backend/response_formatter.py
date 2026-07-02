@@ -84,7 +84,9 @@ class FollowupGenerator:
     """
 
     @staticmethod
-    def generate_followups(user_message: str, assistant_response: str, intent: str, has_documents: bool) -> list[str]:
+    def generate_followups(
+        user_message: str, assistant_response: str, intent: str, has_documents: bool
+    ) -> list[str]:
         """
         Generate relevant follow-up questions.
         """
@@ -145,7 +147,9 @@ class FollowupGenerator:
         return followups[:4]
 
     @staticmethod
-    def generate_contextual_followups(conversation_history: list[dict], current_topic: str) -> list[str]:
+    def generate_contextual_followups(
+        conversation_history: list[dict], current_topic: str
+    ) -> list[str]:
         """
         Generate follow-ups based on conversation context.
         """

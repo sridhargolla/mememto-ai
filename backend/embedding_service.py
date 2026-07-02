@@ -45,7 +45,9 @@ class EmbeddingService:
             pass
 
         if disable_embeddings:
-            print("Embedding model loading skipped (disabled or insufficient RAM). Falling back to keyword search.")
+            print(
+                "Embedding model loading skipped (disabled or insufficient RAM). Falling back to keyword search."
+            )
             self._model = None
             return
 

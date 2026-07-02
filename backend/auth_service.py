@@ -74,10 +74,17 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
     return user
 
 
-def create_user(db: Session, name: str, email: str, password: str, preferred_language: str = "en") -> User:
+def create_user(
+    db: Session, name: str, email: str, password: str, preferred_language: str = "en"
+) -> User:
     """Create a new user."""
     password_hash = hash_password(password)
-    user = User(name=name, email=email, password_hash=password_hash, preferred_language=preferred_language)
+    user = User(
+        name=name,
+        email=email,
+        password_hash=password_hash,
+        preferred_language=preferred_language,
+    )
     db.add(user)
     db.commit()
     db.refresh(user)

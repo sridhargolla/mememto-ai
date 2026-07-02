@@ -89,7 +89,16 @@ class FollowupGenerator:
 
         # Find single word entities/topics
         for word in re.findall(r"\b[A-Z][a-zA-Z0-9_-]+\b", user_message):
-            if word.lower() not in ["memento", "ai", "i", "hello", "hi", "how", "what", "who"]:
+            if word.lower() not in [
+                "memento",
+                "ai",
+                "i",
+                "hello",
+                "hi",
+                "how",
+                "what",
+                "who",
+            ]:
                 keywords.append(word)
 
         # Fallback to key nouns in the user message
@@ -144,7 +153,9 @@ class FollowupGenerator:
 
         return unique_followups
 
-    def _generate_contextual_followups(self, conversation_history: list[dict], intent: str) -> list[str]:
+    def _generate_contextual_followups(
+        self, conversation_history: list[dict], intent: str
+    ) -> list[str]:
         """Generate follow-ups based on conversation context."""
         followups = []
 

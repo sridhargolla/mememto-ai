@@ -80,7 +80,9 @@ class PromptBuilder:
         formatted = []
 
         for memory in memories:
-            source = memory.get("source_file") or memory.get("source_document") or "Personal Knowledge"
+            source = (
+                memory.get("source_file") or memory.get("source_document") or "Personal Knowledge"
+            )
             title = memory.get("title", "Untitled")
             content = memory.get("content", "").strip()
 
@@ -115,7 +117,9 @@ Respond in {language.upper()}."""
         chat_ml += "<|im_start|>assistant\n"
         return chat_ml
 
-    def build_summarization_prompt(self, user_message: str, content_to_summarize: str, language: str = "en") -> str:
+    def build_summarization_prompt(
+        self, user_message: str, content_to_summarize: str, language: str = "en"
+    ) -> str:
         """
         Build a specialized summarization prompt using ChatML.
         """
@@ -128,7 +132,11 @@ Respond in {language.upper()}."""
         return chat_ml
 
     def build_followup_prompt(
-        self, user_message: str, previous_answer: str, intelligence: dict, language: str = "en"
+        self,
+        user_message: str,
+        previous_answer: str,
+        intelligence: dict,
+        language: str = "en",
     ) -> str:
         """
         Build a prompt for follow-up questions using ChatML.
@@ -151,7 +159,9 @@ class ProgressivePromptBuilder:
     def __init__(self, base_builder: PromptBuilder):
         self.base_builder = base_builder
 
-    def build_initial_prompt(self, user_message: str, intelligence: dict, language: str = "en") -> str:
+    def build_initial_prompt(
+        self, user_message: str, intelligence: dict, language: str = "en"
+    ) -> str:
         """Build the initial prompt without full context."""
         system_prompt = self.base_builder.personality.get_system_prompt(language=language)
         return f"""{system_prompt}

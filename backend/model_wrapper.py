@@ -97,7 +97,14 @@ class LocalLLM:
                 prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                stop=["User:", "Assistant:", "user:", "assistant:", "<|im_end|>", "<|im_start|>"],
+                stop=[
+                    "User:",
+                    "Assistant:",
+                    "user:",
+                    "assistant:",
+                    "<|im_end|>",
+                    "<|im_start|>",
+                ],
                 echo=False,
             )
             end_time = time.perf_counter()
@@ -108,9 +115,13 @@ class LocalLLM:
             self.last_inference_time = end_time - start_time
             self.last_token_count = output["usage"]["completion_tokens"]
             self.last_tokens_per_second = (
-                self.last_token_count / self.last_inference_time if self.last_inference_time > 0 else 0.0
+                self.last_token_count / self.last_inference_time
+                if self.last_inference_time > 0
+                else 0.0
             )
-            self.last_time_to_first_token = self.last_inference_time  # approximation for non-streaming
+            self.last_time_to_first_token = (
+                self.last_inference_time
+            )  # approximation for non-streaming
 
             # Cache the response
             response_cache.set(prompt, response, max_tokens, temperature)
@@ -119,7 +130,9 @@ class LocalLLM:
         except Exception as e:
             raise RuntimeError(f"Generation failed: {e}")
 
-    def generate_stream(self, prompt: str, max_tokens: int = 512, temperature: float = 0.7) -> Iterator[str]:
+    def generate_stream(
+        self, prompt: str, max_tokens: int = 512, temperature: float = 0.7
+    ) -> Iterator[str]:
         """
         Generate a response from the model with streaming.
 
@@ -148,7 +161,14 @@ class LocalLLM:
                 prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                stop=["User:", "Assistant:", "user:", "assistant:", "<|im_end|>", "<|im_start|>"],
+                stop=[
+                    "User:",
+                    "Assistant:",
+                    "user:",
+                    "assistant:",
+                    "<|im_end|>",
+                    "<|im_start|>",
+                ],
                 echo=False,
                 stream=True,
             )

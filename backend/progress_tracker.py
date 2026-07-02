@@ -45,7 +45,10 @@ class ProgressTracker:
         self.details: str | None = None
 
     async def emit_progress(
-        self, stage: ProcessingStage, progress: float | None = None, details: str | None = None
+        self,
+        stage: ProcessingStage,
+        progress: float | None = None,
+        details: str | None = None,
     ) -> dict:
         """
         Emit a progress update.

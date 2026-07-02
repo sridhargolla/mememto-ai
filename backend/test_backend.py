@@ -14,8 +14,9 @@ from database import Base, get_db
 from document_ingestion import DocumentExtractor
 from main import app
 from memory_schema import MemorySchema
-from models import Memory, User
 from retrieval import MemoryRetriever
+
+from models import Memory, User
 
 # Setup test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_memento.db"
@@ -94,7 +95,11 @@ def test_json_validation_valid():
 
 def test_json_validation_invalid():
     """Verify that invalid memory types or importance levels throw validation errors."""
-    invalid_data = {"type": "invalid_type_here", "title": "Test Title", "summary": "Test Summary"}
+    invalid_data = {
+        "type": "invalid_type_here",
+        "title": "Test Title",
+        "summary": "Test Summary",
+    }
     with pytest.raises(ValueError):
         MemorySchema(**invalid_data)
 
@@ -126,7 +131,9 @@ def test_database_crud():
     db_memory = db.query(Memory).filter(Memory.id == memory.id).first()
     assert db_memory is not None
     assert db_memory.title == "AI Attendance System"
-    assert db_memory.source_document == "attendance_report.pdf"  # tests backward compatibility property
+    assert (
+        db_memory.source_document == "attendance_report.pdf"
+    )  # tests backward compatibility property
 
     # Update memory
     db_memory.title = "Updated Attendance System"

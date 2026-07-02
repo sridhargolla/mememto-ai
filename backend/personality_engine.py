@@ -34,7 +34,12 @@ class PersonalityEngine:
             "helpful",
             "privacy_first",
         ],
-        "communication_style": {"warmth": 0.8, "formality": 0.5, "verbosity": 0.7, "empathy": 0.9},
+        "communication_style": {
+            "warmth": 0.8,
+            "formality": 0.5,
+            "verbosity": 0.7,
+            "empathy": 0.9,
+        },
     }
 
     # Response templates for different scenarios
@@ -192,7 +197,17 @@ CRITICAL DIRECTIVES:
             return True
 
         # Certain question types prefer brevity
-        brief_indicators = ["is", "are", "do", "does", "can", "will", "should", "has", "have"]
+        brief_indicators = [
+            "is",
+            "are",
+            "do",
+            "does",
+            "can",
+            "will",
+            "should",
+            "has",
+            "have",
+        ]
         return bool(any(question_lower.startswith(ind) for ind in brief_indicators))
 
     @classmethod
