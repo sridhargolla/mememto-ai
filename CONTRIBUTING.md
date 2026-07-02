@@ -228,4 +228,3 @@ If you need help:
 ## 10. License
 
 By contributing to Memento AI, you agree that your contributions will be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
-
