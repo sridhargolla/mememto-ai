@@ -1,95 +1,110 @@
 stages:
-  - quality
-  - security
+  - lint
+  - format
+  - type_check
   - test
-  - build
+  - coverage
+  - security
 
 variables:
-  PYTHON_VERSION: "3.10"
+  PYTHON_VERSION: "3.11"
   NODE_VERSION: "18"
 
-# Python Code Quality
-python-format:
-  stage: quality
+# -----------------
+# LINT STAGE
+# -----------------
+
+ruff-lint:
+  stage: lint
   image: python:${PYTHON_VERSION}
   before_script:
-    - pip install black
+    - pip install ruff
   script:
-    - black --check backend/
-  only:
-    - branches
-    - merge_requests
+    - ruff check .
 
-python-lint:
-  stage: quality
+flake8-lint:
+  stage: lint
   image: python:${PYTHON_VERSION}
   before_script:
     - pip install flake8
   script:
-    - flake8 backend/ --max-line-length=100 --exclude=__pycache__,.venv
-  only:
-    - branches
-    - merge_requests
+    - flake8 backend/
 
-python-type-check:
-  stage: quality
+pylint-lint:
+  stage: lint
   image: python:${PYTHON_VERSION}
   before_script:
-    - pip install mypy
+    - pip install -r backend/requirements.txt
+    - pip install pylint pytest pytest-cov
   script:
-    - mypy backend/ --ignore-missing-imports --no-strict-optional
-  allow_failure: true
-  only:
-    - branches
-    - merge_requests
+    - pylint backend/
 
-# Security Scanning
-python-security:
-  stage: security
-  image: python:${PYTHON_VERSION}
-  before_script:
-    - pip install bandit
-  script:
-    - bandit -r backend/ -f json -o bandit-report.json || true
-    - bandit -r backend/
-  artifacts:
-    reports:
-      sast: bandit-report.json
-  only:
-    - branches
-    - merge_requests
-
-dependency-scan:
-  stage: security
-  image: python:${PYTHON_VERSION}
-  before_script:
-    - pip install safety
-  script:
-    - safety check --json > safety-report.json || true
-    - safety check
-  artifacts:
-    reports:
-      dependency_scanning: safety-report.json
-  allow_failure: true
-  only:
-    - branches
-    - merge_requests
-
-# Frontend Quality
 frontend-lint:
-  stage: quality
+  stage: lint
   image: node:${NODE_VERSION}
   before_script:
     - cd frontend
     - npm install
   script:
-    - npm run lint || true
-  only:
-    - branches
-    - merge_requests
+    - npm run lint || true # Allow failure if there are legacy frontend warnings
+
+# -----------------
+# FORMAT STAGE
+# -----------------
+
+ruff-format:
+  stage: format
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - pip install ruff
+  script:
+    - ruff format --check .
+
+black-format:
+  stage: format
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - pip install black
+  script:
+    - black --check backend/
+
+# -----------------
+# TYPE CHECK STAGE
+# -----------------
+
+mypy-typecheck:
+  stage: type_check
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - pip install -r backend/requirements.txt
+    - pip install mypy types-requests types-passlib
+  script:
+    - mypy backend/
+
+# -----------------
+# TEST STAGE
+# -----------------
+
+python-tests:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - pip install -r backend/requirements.txt
+    - pip install pytest pytest-cov
+  script:
+    - pytest backend/
+
+frontend-tests:
+  stage: test
+  image: node:${NODE_VERSION}
+  before_script:
+    - cd frontend
+    - npm install
+  script:
+    - npm test -- --coverage --watchAll=false || true
 
 frontend-build:
-  stage: build
+  stage: test
   image: node:${NODE_VERSION}
   before_script:
     - cd frontend
@@ -100,53 +115,56 @@ frontend-build:
     paths:
       - frontend/dist/
     expire_in: 1 hour
-  only:
-    - branches
-    - merge_requests
 
-# Tests
-python-tests:
-  stage: test
+# -----------------
+# COVERAGE STAGE
+# -----------------
+
+python-coverage:
+  stage: coverage
   image: python:${PYTHON_VERSION}
   before_script:
-    - cd backend
-    - pip install -r requirements.txt
+    - pip install -r backend/requirements.txt
     - pip install pytest pytest-cov
   script:
-    - pytest tests/ --cov=. --cov-report=xml --cov-report=html || true
-    - echo "Python tests completed"
+    - pytest backend/ --cov=backend --cov-report=xml:backend/coverage.xml --cov-report=term --cov-fail-under=40
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     reports:
       coverage_report:
         coverage_format: cobertura
         path: backend/coverage.xml
-    paths:
-      - backend/htmlcov/
-    expire_in: 1 hour
-  allow_failure: true
-  only:
-    - branches
-    - merge_requests
 
-frontend-tests:
-  stage: test
-  image: node:${NODE_VERSION}
+# -----------------
+# SECURITY STAGE
+# -----------------
+
+bandit-security:
+  stage: security
+  image: python:${PYTHON_VERSION}
   before_script:
-    - cd frontend
-    - npm install
+    - pip install bandit
   script:
-    - npm test -- --coverage --watchAll=false || true
-    - echo "Frontend tests completed"
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: frontend/coverage/cobertura-coverage.xml
-    paths:
-      - frontend/coverage/
-    expire_in: 1 hour
-  allow_failure: true
-  only:
-    - branches
-    - merge_requests
+    - bandit -r backend/ --configfile pyproject.toml
+
+pip-audit-security:
+  stage: security
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - pip install pip-audit
+  script:
+    - pip-audit -r backend/requirements.txt
+
+semgrep-security:
+  stage: security
+  image: returntocorp/semgrep
+  script:
+    - semgrep scan --config auto --error --fail-on-core-errors
+
+gitleaks-security:
+  stage: security
+  image:
+    name: gitleaks/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - gitleaks detect --verbose --source=.
