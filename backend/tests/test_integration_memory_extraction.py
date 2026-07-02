@@ -5,6 +5,7 @@ Tests the full pipeline from text input to structured memory output.
 """
 
 import pytest
+
 from memory_extractor_service import MemoryExtractorService
 from memory_schema import MemorySchema
 

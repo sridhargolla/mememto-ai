@@ -6,11 +6,11 @@ Enhanced memory retrieval with advanced ranking, context awareness, and document
 import re
 from datetime import datetime, timedelta
 
-from embedding_service import EmbeddingService
-from retrieval import MemoryRetriever
 from sqlalchemy.orm import Session
 
+from embedding_service import EmbeddingService
 from models import Memory
+from retrieval import MemoryRetriever
 
 
 class SmartRetriever:

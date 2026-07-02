@@ -1,10 +1,10 @@
 import json
 
+from sqlalchemy.orm import Session
+
 from embedding_service import EmbeddingService
 from language_service import detect_language
 from memory_schema import MemorySchema
-from sqlalchemy.orm import Session
-
 from models import Conversation, Memory
 
 

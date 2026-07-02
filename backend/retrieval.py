@@ -1,6 +1,6 @@
-from embedding_service import EmbeddingService
 from sqlalchemy.orm import Session
 
+from embedding_service import EmbeddingService
 from models import Memory
 
 

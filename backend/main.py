@@ -10,6 +10,11 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 load_dotenv()
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from sqlalchemy.orm import Session
+
 from async_processor import async_processor
 from audio_processor import AudioProcessorService
 from auth_service import (
@@ -28,20 +33,15 @@ from language_service import detect_language
 from memory_service import ConversationService, MemoryService
 from metrics_service import MetricsService
 from model_wrapper import LocalLLM
+from models import Conversation, Memory, User
 from personality_engine import PersonalityEngine
 from progress_tracker import AsyncProgressEmitter
 from prompt_builder import PromptBuilder
 from prompt_sanitizer import PromptSanitizer
 from response_formatter import ResponseFormatter
 from retry_utils import retry_with_logging
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from smart_retrieval import DocumentAwareRetriever
-from sqlalchemy.orm import Session
 from system_monitor import SystemMonitor
-
-from models import Conversation, Memory, User
 
 # Load environment variables
 load_dotenv()

@@ -5,10 +5,11 @@ import re
 
 import fitz  # PyMuPDF
 import pytesseract
+from PIL import Image
+
 from audio_processor import AudioProcessorService
 from file_validator import FileValidator
 from memory_extractor_service import MemoryExtractorService
-from PIL import Image
 
 
 class DocumentExtractor:

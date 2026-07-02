@@ -14,9 +14,8 @@ from database import Base, get_db
 from document_ingestion import DocumentExtractor
 from main import app
 from memory_schema import MemorySchema
-from retrieval import MemoryRetriever
-
 from models import Memory, User
+from retrieval import MemoryRetriever
 
 # Setup test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_memento.db"

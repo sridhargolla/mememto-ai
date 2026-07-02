@@ -13,6 +13,7 @@ import os
 import sqlite3
 
 import bcrypt
+
 from database import init_db
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", "./memento.db")
