@@ -166,7 +166,7 @@ semgrep-security:
   stage: security
   image: returntocorp/semgrep
   script:
-    - semgrep scan --config auto --error
+    - semgrep ci
 
 gitleaks-security:
   stage: security
@@ -174,4 +174,4 @@ gitleaks-security:
     name: zricethezav/gitleaks:latest
     entrypoint: [""]
   script:
-    - gitleaks detect --verbose --source=.
+    - gitleaks detect --verbose --source=. --config=.gitleaks.toml
