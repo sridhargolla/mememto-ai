@@ -1,19 +1,9 @@
 import os
-import tempfile
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-# Use a temp file for the test database so CI Docker containers can write it
-_db_fd, _db_path = tempfile.mkstemp(suffix=".db")
-os.close(_db_fd)
-
-# Set test database path before imports
-os.environ["DATABASE_PATH"] = _db_path
-
-import contextlib
 
 from database import Base, get_db
 from document_ingestion import DocumentExtractor
@@ -22,8 +12,11 @@ from memory_schema import MemorySchema
 from models import Memory, User
 from retrieval import MemoryRetriever
 
+# Retrieve the test database path configured by conftest.py
+DATABASE_PATH = os.getenv("DATABASE_PATH", "./test_memento.db")
+
 # Setup test database
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_path}"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -45,10 +38,8 @@ def setup_and_teardown_db():
     # Create tables
     Base.metadata.create_all(bind=engine)
     yield
-    # Drop tables and delete file
+    # Drop tables to ensure test isolation
     Base.metadata.drop_all(bind=engine)
-    with contextlib.suppress(BaseException):
-        os.remove(_db_path)
 
 
 def test_health_endpoint():
