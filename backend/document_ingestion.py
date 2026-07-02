@@ -5,11 +5,10 @@ import re
 
 import fitz  # PyMuPDF
 import pytesseract
-from PIL import Image
-
 from audio_processor import AudioProcessorService
 from file_validator import FileValidator
 from memory_extractor_service import MemoryExtractorService
+from PIL import Image
 
 
 class DocumentExtractor:
@@ -105,7 +104,9 @@ class DocumentExtractor:
             # Also extract table cell text
             for table in doc.tables:
                 for row in table.rows:
-                    row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
+                    row_text = " | ".join(
+                        cell.text.strip() for cell in row.cells if cell.text.strip()
+                    )
                     if row_text:
                         parts.append(row_text)
             return DocumentExtractor.normalize_text("\n".join(parts))
@@ -127,7 +128,11 @@ class DocumentExtractor:
         raise RuntimeError("Failed to decode file with any supported encoding.")
 
     @staticmethod
-    def extract_text(file_path: str, file_type: str, audio_processor: AudioProcessorService | None = None) -> str:
+    def extract_text(
+        file_path: str,
+        file_type: str,
+        audio_processor: AudioProcessorService | None = None,
+    ) -> str:
         """
         Extract text from a file based on its type with graceful error handling.
 
@@ -156,7 +161,9 @@ class DocumentExtractor:
         # Limit file size processing on CPU to avoid hanging (e.g., max 50MB for docs, 100MB for audio)
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
         if file_typelower in ["pdf", "txt", "png", "jpg", "jpeg"] and file_size_mb > 50:
-            raise ValueError(f"File size ({file_size_mb:.1f}MB) exceeds the 50MB CPU processing limit.")
+            raise ValueError(
+                f"File size ({file_size_mb:.1f}MB) exceeds the 50MB CPU processing limit."
+            )
 
         try:
             if file_typelower == "pdf":
@@ -212,7 +219,9 @@ class MemoryExtractor:
         self.llm = llm
         self.structured_extractor = MemoryExtractorService(llm)
 
-    def extract_memories(self, text: str, source_document: str | None = None, max_memories: int = 5) -> list:
+    def extract_memories(
+        self, text: str, source_document: str | None = None, max_memories: int = 5
+    ) -> list:
         """
         Extract key memories from document text.
 
@@ -229,7 +238,9 @@ class MemoryExtractor:
 
         try:
             # Use the consolidated structured extractor
-            structured_memories = self.structured_extractor.extract_memories(text, source_document, max_memories)
+            structured_memories = self.structured_extractor.extract_memories(
+                text, source_document, max_memories
+            )
 
             # Convert to list format for backward compatibility
             memories = []
@@ -250,7 +261,9 @@ class MemoryExtractor:
             print(f"Error extracting memories: {e}")
             return []
 
-    def extract_structured_memories(self, text: str, source_document: str | None = None, max_memories: int = 5) -> list:
+    def extract_structured_memories(
+        self, text: str, source_document: str | None = None, max_memories: int = 5
+    ) -> list:
         """
         Extract structured memories from document text.
 

@@ -6,24 +6,24 @@ This document describes the high-level system architecture, component design, da
 
 ## 1. System Architecture Overview
 
-Memento AI is designed as a local desktop service bundle consisting of a web-based React frontend and a FastAPI backend service. 
+Memento AI is designed as a local desktop service bundle consisting of a web-based React frontend and a FastAPI backend service.
 
 ### High-Level Architecture Diagram
 ```mermaid
 graph TD
     User([User]) <--> |HTTP / WebSockets| FE[React Frontend]
-    
+
     subgraph Local_Backend [Local FastAPI Backend]
         API[FastAPI Router] <--> |Orchestration| PL[Processing Layer]
         PL <--> |Chunking & Formatting| AI[Local AI Engine]
-        
+
         subgraph Local_AI [Local AI Engine]
             llama[llama.cpp / GGUF LLM]
             whisper[Whisper.cpp / STT]
             onnx[ONNX Runtime / Embeddings]
             tess[Tesseract / OCR]
         end
-        
+
         PL <--> |SQL Queries & Vectors| DB[(SQLite + sqlite-vss)]
     end
 
@@ -75,19 +75,19 @@ This pipeline processes PDFs, markdown files, text documents, and images.
 ```mermaid
 flowchart TD
     A[PDF / Image / Text Upload] --> B{MIME Type Check}
-    
+
     B -->|Text / MD| C[Direct Text Reader]
     B -->|Digital PDF| D[PyMuPDF / pdfplumber]
     B -->|Image / Scanned PDF| E[Tesseract OCR]
-    
+
     C --> F[Raw Text Extracted]
     D --> F
     E --> F
-    
+
     F --> G[Recursive Text Chunking]
     G --> H[ONNX Embedding Generation]
     G --> I[GGUF LLM Entity Extraction]
-    
+
     H --> J[(SQLite Vector DB)]
     I --> K[JSON Schema Validation]
     K --> L[(SQLite Relational DB)]
@@ -101,11 +101,11 @@ flowchart TD
     A[Audio File Upload] --> B[FFmpeg Conversion to 16kHz Mono WAV]
     B --> C[Whisper.cpp Inference]
     C --> D[Timestamped Transcript]
-    
+
     D --> E[Text Segmentation]
     E --> F[ONNX Embedding Generation]
     E --> G[GGUF LLM Entity & Action Item Extraction]
-    
+
     F --> H[(SQLite Vector DB)]
     G --> I[JSON Schema Validation]
     I --> J[(SQLite Relational DB)]

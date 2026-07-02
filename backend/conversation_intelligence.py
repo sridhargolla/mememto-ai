@@ -15,9 +15,26 @@ class IntentDetector:
     """Detects user intent from messages."""
 
     INTENTS = {
-        "question": ["what", "how", "why", "when", "where", "which", "who", "can you", "could you"],
+        "question": [
+            "what",
+            "how",
+            "why",
+            "when",
+            "where",
+            "which",
+            "who",
+            "can you",
+            "could you",
+        ],
         "command": ["tell me", "show me", "list", "find", "search", "get", "retrieve"],
-        "greeting": ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"],
+        "greeting": [
+            "hello",
+            "hi",
+            "hey",
+            "good morning",
+            "good afternoon",
+            "good evening",
+        ],
         "farewell": ["bye", "goodbye", "see you", "farewell"],
         "thanks": ["thank", "thanks", "appreciate"],
         "coding": [
@@ -167,7 +184,9 @@ class ContextManager:
             if pronoun in ["it", "this", "that"]:
                 # Try to resolve to the most recently mentioned noun
                 if "last_subject" in recent_entities:
-                    resolved = resolved.replace(f" {pronoun}", f" {recent_entities['last_subject']}", 1)
+                    resolved = resolved.replace(
+                        f" {pronoun}", f" {recent_entities['last_subject']}", 1
+                    )
             elif pronoun in ["they", "them"] and "last_plural" in recent_entities:
                 resolved = resolved.replace(f" {pronoun}", f" {recent_entities['last_plural']}", 1)
 

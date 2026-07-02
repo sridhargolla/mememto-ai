@@ -54,7 +54,13 @@ class ResponseCache:
         self.misses += 1
         return None
 
-    def set(self, prompt: str, response: str, max_tokens: int = 512, temperature: float = 0.7):
+    def set(
+        self,
+        prompt: str,
+        response: str,
+        max_tokens: int = 512,
+        temperature: float = 0.7,
+    ):
         """
         Cache a response.
 
