@@ -56,3 +56,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project License**: Added the GNU Affero General Public License v3.0 (`LICENSE`).
 - **Gitignore**: Implemented a root-level `.gitignore` file to prevent local models, virtual environments, node modules, and SQLite databases from being tracked.
 
+## v1.0.0
+
+### Added
+
+- CPU-first AI inference
+- Offline document processing
+- Local LLM integration
+- SQLite knowledge base
+- OCR support
+- Image processing
+- Audio transcription
+- Video processing
+- ChatGPT-like chatbot
+- Conversation history
+- Timeline view
+- Memory management
+- Document upload
+- Markdown rendering
+- Streaming responses
+- English interface
+- Telugu interface
+- Hindi interface
+- PWA support
+- Mobile APK
+- CLI support

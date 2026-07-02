@@ -1,7 +1,9 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from models import Base
-import os
 
 # Database file path
 DATABASE_PATH = os.getenv("DATABASE_PATH", "./memento.db")
@@ -17,14 +19,15 @@ def init_db():
     """Initialize the database, create tables, and handle schema migrations."""
     # Create tables if they don't exist
     Base.metadata.create_all(bind=engine)
-    
+
     # Run lightweight column migrations if tables already exist
     from sqlalchemy import text
+
     with engine.connect() as conn:
         # Check existing columns in memories table
         result = conn.execute(text("PRAGMA table_info(memories)"))
         columns = [row[1] for row in result.fetchall()]
-        
+
         # Add columns if they don't exist
         if "type" not in columns:
             try:
@@ -32,32 +35,32 @@ def init_db():
                 print("Migration: Added 'type' column to memories table")
             except Exception as e:
                 print(f"Migration warning (type): {e}")
-                
+
         if "metadata" not in columns:
             try:
                 conn.execute(text("ALTER TABLE memories ADD COLUMN metadata TEXT"))
                 print("Migration: Added 'metadata' column to memories table")
             except Exception as e:
                 print(f"Migration warning (metadata): {e}")
-                
+
         if "source_file" not in columns:
             try:
                 conn.execute(text("ALTER TABLE memories ADD COLUMN source_file VARCHAR(500)"))
                 print("Migration: Added 'source_file' column to memories table")
             except Exception as e:
                 print(f"Migration warning (source_file): {e}")
-                
+
         if "language" not in columns:
             try:
                 conn.execute(text("ALTER TABLE memories ADD COLUMN language VARCHAR(50)"))
                 print("Migration: Added 'language' column to memories table")
             except Exception as e:
                 print(f"Migration warning (language): {e}")
-        
+
         # Check if performance_metrics table exists
         result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance_metrics'"))
         perf_table_exists = result.fetchone() is not None
-        
+
         if not perf_table_exists:
             print("Migration: Creating performance_metrics table")
             # Base.metadata.create_all will handle this, but we log it
@@ -67,31 +70,30 @@ def init_db():
         # Check existing columns in conversations table
         result_conv = conn.execute(text("PRAGMA table_info(conversations)"))
         conv_columns = [row[1] for row in result_conv.fetchall()]
-        
+
         if "session_id" not in conv_columns:
             try:
                 conn.execute(text("ALTER TABLE conversations ADD COLUMN session_id VARCHAR(50)"))
                 print("Migration: Added 'session_id' column to conversations table")
             except Exception as e:
                 print(f"Migration warning (session_id): {e}")
-                
+
         if "title" not in conv_columns:
             try:
                 conn.execute(text("ALTER TABLE conversations ADD COLUMN title VARCHAR(255)"))
                 print("Migration: Added 'title' column to conversations table")
             except Exception as e:
                 print(f"Migration warning (title): {e}")
-                
+
         if "is_pinned" not in conv_columns:
             try:
                 conn.execute(text("ALTER TABLE conversations ADD COLUMN is_pinned INTEGER DEFAULT 0"))
                 print("Migration: Added 'is_pinned' column to conversations table")
             except Exception as e:
                 print(f"Migration warning (is_pinned): {e}")
-        
+
         # Commit changes (SQLAlchemy engine connection handles this, but commit is good practice)
         conn.commit()
-
 
 
 def get_db():

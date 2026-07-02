@@ -1,0 +1,57 @@
+# Ruff configuration file for Memento AI
+
+# Supported Python version
+target-version = "py310"
+
+# Excluded directories
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "node_modules",
+    "dist",
+]
+
+# Configure line length to be compatible with flake8 and black
+line-length = 120
+
+[lint]
+# Enable standard check categories (Pyflakes, pycodestyle, pyupgrade, bandit, flake8-comprehensions)
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+
+# Ignore specific violations present in the existing code to maintain offline compliance
+ignore = [
+    "E402",  # Module level import not at top of file (needed for db/env setup in modules)
+    "E722",  # Do not use bare `except` (used in API and fallback blocks)
+    "E501",  # Line too long (managed by black formatter)
+    "F401",  # Unused import
+    "F841",  # Unused variable
+    "W291",  # Trailing whitespace
+    "W293",  # Blank line contains whitespace
+    "B007",  # Loop control variable not used
+    "B008",  # Do not perform function call in argument defaults (standard for FastAPI)
+    "B904",  # Within an except clause raise from
+    "B005",  # Using .strip() with multi-character strings
+]
+
+[lint.per-file-ignores]
+# Ignore assert usage and unused vars/imports in tests
+"**/tests/*" = ["B011", "F401", "F841"]
+"**/test_*.py" = ["B011", "F401", "F841"]
+
+[format]
+# Enable formatting configuration
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

@@ -1,22 +1,34 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, LargeBinary, Index, ForeignKey, Float
+from datetime import datetime
+
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from datetime import datetime
 
 Base = declarative_base()
 
 
 class User(Base):
     """User model for authentication."""
+
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     preferred_language = Column(String(10), nullable=False, default="en")
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     memories = relationship("Memory", back_populates="user", cascade="all, delete-orphan")
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
@@ -24,10 +36,13 @@ class User(Base):
 
 class Memory(Base):
     """Memory model for storing extracted memories and documents."""
+
     __tablename__ = "memories"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(String(50), nullable=True, index=True)  # person, event, experience, project, skill, education, document
+    type = Column(
+        String(50), nullable=True, index=True
+    )  # person, event, experience, project, skill, education, document
     title = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     tags = Column(String(500), nullable=True)  # Comma-separated tags
@@ -36,13 +51,13 @@ class Memory(Base):
     source_file = Column(String(500), nullable=True, index=True)  # Original document name
     language = Column(String(50), nullable=True, default="en", index=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
-    
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
     # Backward compatibility mappings
     @property
     def memory_type(self):
         return self.type
-        
+
     @memory_type.setter
     def memory_type(self, value):
         self.type = value
@@ -65,7 +80,7 @@ class Memory(Base):
 
     # Relationship
     user = relationship("User", back_populates="memories")
-    
+
     # Extra structured memory fields for search/retrieval speed
     importance = Column(String(20), nullable=True, index=True)  # low, medium, high
     entities_people = Column(Text, nullable=True)  # JSON array of people
@@ -76,36 +91,36 @@ class Memory(Base):
     time_end = Column(String(100), nullable=True)  # End time
     source_documents = Column(Text, nullable=True)  # JSON array of source documents
 
-
     # Indexes for performance
     __table_args__ = (
-        Index('idx_memory_created_at', 'created_at'),
-        Index('idx_memory_source_file', 'source_file'),
+        Index("idx_memory_created_at", "created_at"),
+        Index("idx_memory_source_file", "source_file"),
     )
-
 
 
 class Conversation(Base):
     """Conversation model for storing chat history."""
+
     __tablename__ = "conversations"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     session_id = Column(String(50), nullable=True, index=True)
     title = Column(String(255), nullable=True)
     is_pinned = Column(Integer, nullable=False, default=0)
-    
+
     # Relationship
     user = relationship("User", back_populates="conversations")
 
 
 class PerformanceMetrics(Base):
     """Performance metrics for monitoring system performance locally."""
+
     __tablename__ = "performance_metrics"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     metric_type = Column(String(50), nullable=False, index=True)  # model_load, inference, document_process
     metric_name = Column(String(255), nullable=True)  # e.g., "Qwen2.5-3B-Instruct"
@@ -117,10 +132,10 @@ class PerformanceMetrics(Base):
     document_count = Column(Integer, nullable=True)  # For document processing
     metadata_json = Column(Text, nullable=True)  # Additional metadata
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=True, index=True)
-    
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
     # Indexes for performance
     __table_args__ = (
-        Index('idx_metrics_type', 'metric_type'),
-        Index('idx_metrics_timestamp', 'timestamp'),
+        Index("idx_metrics_type", "metric_type"),
+        Index("idx_metrics_timestamp", "timestamp"),
     )

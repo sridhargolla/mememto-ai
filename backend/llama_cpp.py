@@ -5,13 +5,14 @@ This file exists in the backend folder so the app can boot even without llama-cp
 When the real package IS installed, this module replaces itself in sys.modules so that
 all downstream imports (e.g. `from llama_cpp import Llama`) resolve to the real library.
 """
+
 import os
 import sys
 
 # Remove THIS file's directory from sys.path before the real import so Python
 # doesn't resolve "llama_cpp" back to this file (which would cause recursion).
 _this_dir = os.path.dirname(os.path.abspath(__file__))
-_clean_path = [p for p in sys.path if os.path.abspath(p) != _this_dir]
+_clean_path = [p for p in sys.path if os.path.abspath(p).lower() != _this_dir.lower()]
 
 try:
     import importlib
@@ -30,30 +31,65 @@ try:
         lib = _real.llama_cpp._lib
         if not hasattr(lib, "llama_get_memory"):
             import ctypes
+
             # Bind the older KV cache manager functions
             if hasattr(lib, "llama_kv_cache_clear"):
                 lib.llama_kv_cache_clear.argtypes = [_real.llama_context_p_ctypes]
                 lib.llama_kv_cache_clear.restype = None
             if hasattr(lib, "llama_kv_cache_seq_rm"):
-                lib.llama_kv_cache_seq_rm.argtypes = [_real.llama_context_p_ctypes, _real.llama_seq_id, _real.llama_pos, _real.llama_pos]
+                lib.llama_kv_cache_seq_rm.argtypes = [
+                    _real.llama_context_p_ctypes,
+                    _real.llama_seq_id,
+                    _real.llama_pos,
+                    _real.llama_pos,
+                ]
                 lib.llama_kv_cache_seq_rm.restype = ctypes.c_bool
             if hasattr(lib, "llama_kv_cache_seq_cp"):
-                lib.llama_kv_cache_seq_cp.argtypes = [_real.llama_context_p_ctypes, _real.llama_seq_id, _real.llama_seq_id, _real.llama_pos, _real.llama_pos]
+                lib.llama_kv_cache_seq_cp.argtypes = [
+                    _real.llama_context_p_ctypes,
+                    _real.llama_seq_id,
+                    _real.llama_seq_id,
+                    _real.llama_pos,
+                    _real.llama_pos,
+                ]
                 lib.llama_kv_cache_seq_cp.restype = None
             if hasattr(lib, "llama_kv_cache_seq_keep"):
-                lib.llama_kv_cache_seq_keep.argtypes = [_real.llama_context_p_ctypes, _real.llama_seq_id]
+                lib.llama_kv_cache_seq_keep.argtypes = [
+                    _real.llama_context_p_ctypes,
+                    _real.llama_seq_id,
+                ]
                 lib.llama_kv_cache_seq_keep.restype = None
             if hasattr(lib, "llama_kv_cache_seq_add"):
-                lib.llama_kv_cache_seq_add.argtypes = [_real.llama_context_p_ctypes, _real.llama_seq_id, _real.llama_pos, _real.llama_pos, _real.llama_pos]
+                lib.llama_kv_cache_seq_add.argtypes = [
+                    _real.llama_context_p_ctypes,
+                    _real.llama_seq_id,
+                    _real.llama_pos,
+                    _real.llama_pos,
+                    _real.llama_pos,
+                ]
                 lib.llama_kv_cache_seq_add.restype = None
 
             # Patch llama_get_memory and memory functions
             _real.llama_get_memory = lambda ctx: ctx
-            _real.llama_memory_clear = lambda memory, v: lib.llama_kv_cache_clear(memory) if hasattr(lib, "llama_kv_cache_clear") else None
-            _real.llama_memory_seq_rm = lambda memory, seq_id, p0, p1: lib.llama_kv_cache_seq_rm(memory, seq_id, p0, p1) if hasattr(lib, "llama_kv_cache_seq_rm") else False
-            _real.llama_memory_seq_cp = lambda memory, seq_id_src, seq_id_dst, p0, p1: lib.llama_kv_cache_seq_cp(memory, seq_id_src, seq_id_dst, p0, p1) if hasattr(lib, "llama_kv_cache_seq_cp") else None
-            _real.llama_memory_seq_keep = lambda memory, seq_id: lib.llama_kv_cache_seq_keep(memory, seq_id) if hasattr(lib, "llama_kv_cache_seq_keep") else None
-            _real.llama_memory_seq_add = lambda memory, seq_id, p0, p1, shift: lib.llama_kv_cache_seq_add(memory, seq_id, p0, p1, shift) if hasattr(lib, "llama_kv_cache_seq_add") else None
+            _real.llama_memory_clear = lambda memory, v: (
+                lib.llama_kv_cache_clear(memory) if hasattr(lib, "llama_kv_cache_clear") else None
+            )
+            _real.llama_memory_seq_rm = lambda memory, seq_id, p0, p1: (
+                lib.llama_kv_cache_seq_rm(memory, seq_id, p0, p1) if hasattr(lib, "llama_kv_cache_seq_rm") else False
+            )
+            _real.llama_memory_seq_cp = lambda memory, seq_id_src, seq_id_dst, p0, p1: (
+                lib.llama_kv_cache_seq_cp(memory, seq_id_src, seq_id_dst, p0, p1)
+                if hasattr(lib, "llama_kv_cache_seq_cp")
+                else None
+            )
+            _real.llama_memory_seq_keep = lambda memory, seq_id: (
+                lib.llama_kv_cache_seq_keep(memory, seq_id) if hasattr(lib, "llama_kv_cache_seq_keep") else None
+            )
+            _real.llama_memory_seq_add = lambda memory, seq_id, p0, p1, shift: (
+                lib.llama_kv_cache_seq_add(memory, seq_id, p0, p1, shift)
+                if hasattr(lib, "llama_kv_cache_seq_add")
+                else None
+            )
 
             # Expose in inner namespaces
             _real.llama_cpp.llama_get_memory = _real.llama_get_memory
@@ -96,5 +132,3 @@ except Exception as _load_err:
                 "--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu\n"
                 "Then restart the backend server."
             )
-
-
