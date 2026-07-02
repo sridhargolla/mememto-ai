@@ -1,4 +1,4 @@
 [flake8]
 max-line-length = 100
-exclude = .git,__pycache__,.venv,node_modules,vulture_whitelist.py
+exclude = .git,__pycache__,.venv,node_modules,backend/vulture_whitelist.py
 ignore = E402,E722,E501,E203

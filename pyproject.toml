@@ -8,7 +8,7 @@ exclude = [
     ".venv",
     "__pycache__",
     "node_modules",
-    "vulture_whitelist.py",
+    "backend/vulture_whitelist.py",
 ]
 
 [tool.ruff.lint]
@@ -50,4 +50,17 @@ ignore_errors = true
 skips = ["B101", "B104", "B105", "B106", "B110", "B112", "B301", "B310", "B311", "B324", "B403", "B615"]
 exclude_dirs = [".venv", "tests", "backend/tests"]
 
-
+[tool.vulture]
+exclude = [
+    ".venv",
+    "venv",
+    "node_modules",
+    "__pycache__",
+    "build",
+    "dist",
+    "backend/tests",
+    "tests",
+]
+paths = ["backend"]
+min_confidence = 60
+sort_by_size = true
