@@ -1,30 +1,4 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
-    hooks:
-      - id: black
-        language_version: python3.10
-        args: ['--check', '--line-length=100']
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
-    hooks:
-      - id: flake8
-        args: ['--max-line-length=100', '--exclude=__pycache__,.venv']
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.9.0
-    hooks:
-      - id: mypy
-        args: ['--ignore-missing-imports', '--no-strict-optional']
-        additional_dependencies: [types-requests]
-
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.8
-    hooks:
-      - id: bandit
-        args: ['-r', 'backend/']
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -34,16 +8,55 @@ repos:
       - id: check-added-large-files
         args: ['--maxkb=10000']
 
-  - repo: https://github.com/digitalpulp/pre-commit-php
-    rev: 2.1.0
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.0
     hooks:
-      - id: php-lint
-        files: \.php$
+      - id: pyupgrade
+        args: [--py311-plus]
 
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.57.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.15
     hooks:
-      - id: eslint
-        files: \.(js|jsx|ts|tsx)$
-        types: [file]
-        args: ['--config', 'frontend/.eslintrc.cjs']
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: ['--check', '--line-length=100']
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=100']
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        args: ['--ignore-missing-imports', '--no-strict-optional']
+        exclude: ^setup_models\.py$|^backend/setup_models\.py$
+        additional_dependencies: [types-requests, types-passlib]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ['--configfile', 'pyproject.toml']
+
+  - repo: local
+    hooks:
+      - id: semgrep
+        name: semgrep
+        entry: semgrep scan --config auto --error --skip-unknown-extensions
+        language: system
+        types: [python, javascript, json, yaml]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
