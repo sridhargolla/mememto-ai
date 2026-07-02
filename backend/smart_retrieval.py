@@ -6,11 +6,11 @@ Enhanced memory retrieval with advanced ranking, context awareness, and document
 import re
 from datetime import datetime, timedelta
 
+from embedding_service import EmbeddingService
+from retrieval import MemoryRetriever
 from sqlalchemy.orm import Session
 
-from embedding_service import EmbeddingService
 from models import Memory
-from retrieval import MemoryRetriever
 
 
 class SmartRetriever:
@@ -45,7 +45,9 @@ class SmartRetriever:
             List of ranked memory dictionaries with metadata
         """
         # Get base hybrid results
-        base_results = self.base_retriever.retrieve_hybrid(self.db, query, top_k=top_k * 2, user_id=self.user_id)
+        base_results = self.base_retriever.retrieve_hybrid(
+            self.db, query, top_k=top_k * 2, user_id=self.user_id
+        )
 
         if not base_results:
             return []
@@ -53,7 +55,9 @@ class SmartRetriever:
         # Enhance with additional ranking factors
         ranked_results = []
         for memory, base_score in base_results:
-            enhanced_score = self._calculate_enhanced_score(memory, base_score, query, intent, conversation_context)
+            enhanced_score = self._calculate_enhanced_score(
+                memory, base_score, query, intent, conversation_context
+            )
 
             ranked_results.append(
                 {
@@ -109,7 +113,9 @@ class SmartRetriever:
                 score *= 1.2
         elif intent == "coding":
             # Prioritize code-related memories
-            if memory.tags and any(tag in memory.tags for tag in ["code", "programming", "algorithm"]):
+            if memory.tags and any(
+                tag in memory.tags for tag in ["code", "programming", "algorithm"]
+            ):
                 score *= 1.3
 
         # Factor 4: Conversation context relevance
@@ -206,7 +212,11 @@ class SmartRetriever:
         """
         Get a summary of all uploaded documents for the user.
         """
-        memories = self.db.query(Memory).filter(Memory.user_id == self.user_id, Memory.source_file.isnot(None)).all()
+        memories = (
+            self.db.query(Memory)
+            .filter(Memory.user_id == self.user_id, Memory.source_file.isnot(None))
+            .all()
+        )
 
         if not memories:
             return {"total": 0, "documents": []}
@@ -235,7 +245,9 @@ class SmartRetriever:
         Search within a specific document.
         """
         memories = (
-            self.db.query(Memory).filter(Memory.user_id == self.user_id, Memory.source_file == document_name).all()
+            self.db.query(Memory)
+            .filter(Memory.user_id == self.user_id, Memory.source_file == document_name)
+            .all()
         )
 
         if not memories:
@@ -262,7 +274,11 @@ class SmartRetriever:
         """
         Find memories related to a specific memory.
         """
-        target_memory = self.db.query(Memory).filter(Memory.id == memory_id, Memory.user_id == self.user_id).first()
+        target_memory = (
+            self.db.query(Memory)
+            .filter(Memory.id == memory_id, Memory.user_id == self.user_id)
+            .first()
+        )
 
         if not target_memory:
             return []
@@ -292,7 +308,11 @@ class DocumentAwareRetriever:
 
     def has_documents(self) -> bool:
         """Check if user has uploaded documents."""
-        count = self.db.query(Memory).filter(Memory.user_id == self.user_id, Memory.source_file.isnot(None)).count()
+        count = (
+            self.db.query(Memory)
+            .filter(Memory.user_id == self.user_id, Memory.source_file.isnot(None))
+            .count()
+        )
         return count > 0
 
     def retrieve_with_document_priority(
@@ -314,7 +334,10 @@ class DocumentAwareRetriever:
         if has_docs:
             # Prioritize document results
             results = self.smart_retriever.retrieve_with_ranking(
-                query, top_k=top_k, intent=intent, conversation_context=conversation_context
+                query,
+                top_k=top_k,
+                intent=intent,
+                conversation_context=conversation_context,
             )
 
             # Ensure at least half of results are from documents if possible
@@ -348,6 +371,9 @@ class DocumentAwareRetriever:
         else:
             # No documents, use normal retrieval
             results = self.smart_retriever.retrieve_with_ranking(
-                query, top_k=top_k, intent=intent, conversation_context=conversation_context
+                query,
+                top_k=top_k,
+                intent=intent,
+                conversation_context=conversation_context,
             )
             return results, False

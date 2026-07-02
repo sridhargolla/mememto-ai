@@ -1,10 +1,10 @@
 import json
 
-from sqlalchemy.orm import Session
-
 from embedding_service import EmbeddingService
 from language_service import detect_language
 from memory_schema import MemorySchema
+from sqlalchemy.orm import Session
+
 from models import Conversation, Memory
 
 
@@ -58,7 +58,9 @@ class MemoryService:
         return db.query(Memory).filter(Memory.id == memory_id).first()
 
     @staticmethod
-    def get_all_memories(db: Session, skip: int = 0, limit: int = 100, user_id: int | None = None) -> list[Memory]:
+    def get_all_memories(
+        db: Session, skip: int = 0, limit: int = 100, user_id: int | None = None
+    ) -> list[Memory]:
         """Get all memories with pagination."""
         query = db.query(Memory)
         if user_id:
@@ -67,7 +69,11 @@ class MemoryService:
 
     @staticmethod
     def get_memories_by_tag(
-        db: Session, tag: str, skip: int = 0, limit: int = 100, user_id: int | None = None
+        db: Session,
+        tag: str,
+        skip: int = 0,
+        limit: int = 100,
+        user_id: int | None = None,
     ) -> list[Memory]:
         """Get memories by tag."""
         query = db.query(Memory).filter(Memory.tags.like(f"%{tag}%"))
@@ -123,7 +129,9 @@ class MemoryService:
         return False
 
     @staticmethod
-    def create_structured_memory(db: Session, memory_schema: MemorySchema, user_id: int | None = None) -> Memory:
+    def create_structured_memory(
+        db: Session, memory_schema: MemorySchema, user_id: int | None = None
+    ) -> Memory:
         """
         Create a new memory from a structured MemorySchema.
 
@@ -170,17 +178,27 @@ class MemoryService:
             language=detected_language,
             user_id=user_id,
             importance=memory_schema.importance,
-            entities_people=json.dumps(memory_schema.entities.people) if memory_schema.entities.people else None,
-            entities_organizations=json.dumps(memory_schema.entities.organizations)
-            if memory_schema.entities.organizations
-            else None,
-            entities_locations=json.dumps(memory_schema.entities.locations)
-            if memory_schema.entities.locations
-            else None,
+            entities_people=(
+                json.dumps(memory_schema.entities.people) if memory_schema.entities.people else None
+            ),
+            entities_organizations=(
+                json.dumps(memory_schema.entities.organizations)
+                if memory_schema.entities.organizations
+                else None
+            ),
+            entities_locations=(
+                json.dumps(memory_schema.entities.locations)
+                if memory_schema.entities.locations
+                else None
+            ),
             entities_skills=skills_json,
             time_start=memory_schema.time.start or memory_schema.duration,
             time_end=memory_schema.time.end,
-            source_documents=json.dumps(memory_schema.source_documents) if memory_schema.source_documents else None,
+            source_documents=(
+                json.dumps(memory_schema.source_documents)
+                if memory_schema.source_documents
+                else None
+            ),
         )
 
         db.add(memory)
@@ -189,7 +207,9 @@ class MemoryService:
         return memory
 
     @staticmethod
-    def get_memories_by_type(db: Session, memory_type: str, skip: int = 0, limit: int = 100) -> list[Memory]:
+    def get_memories_by_type(
+        db: Session, memory_type: str, skip: int = 0, limit: int = 100
+    ) -> list[Memory]:
         """
         Get memories by type.
 
@@ -212,7 +232,9 @@ class MemoryService:
         )
 
     @staticmethod
-    def get_memories_by_importance(db: Session, importance: str, skip: int = 0, limit: int = 100) -> list[Memory]:
+    def get_memories_by_importance(
+        db: Session, importance: str, skip: int = 0, limit: int = 100
+    ) -> list[Memory]:
         """
         Get memories by importance level.
 
@@ -236,7 +258,11 @@ class MemoryService:
 
     @staticmethod
     def get_memories_by_entity(
-        db: Session, entity_type: str, entity_value: str, skip: int = 0, limit: int = 100
+        db: Session,
+        entity_type: str,
+        entity_value: str,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[Memory]:
         """
         Get memories containing a specific entity.

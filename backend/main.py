@@ -10,14 +10,14 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 load_dotenv()
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
-from sqlalchemy.orm import Session
-
 from async_processor import async_processor
 from audio_processor import AudioProcessorService
-from auth_service import authenticate_user, create_access_token, create_user, decode_token
+from auth_service import (
+    authenticate_user,
+    create_access_token,
+    create_user,
+    decode_token,
+)
 from cache_service import response_cache
 from conversation_intelligence import ConversationIntelligence
 from database import get_db, init_db
@@ -28,15 +28,20 @@ from language_service import detect_language
 from memory_service import ConversationService, MemoryService
 from metrics_service import MetricsService
 from model_wrapper import LocalLLM
-from models import Conversation, Memory, User
 from personality_engine import PersonalityEngine
 from progress_tracker import AsyncProgressEmitter
 from prompt_builder import PromptBuilder
 from prompt_sanitizer import PromptSanitizer
 from response_formatter import ResponseFormatter
 from retry_utils import retry_with_logging
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from smart_retrieval import DocumentAwareRetriever
+from sqlalchemy.orm import Session
 from system_monitor import SystemMonitor
+
+from models import Conversation, Memory, User
 
 # Load environment variables
 load_dotenv()
@@ -187,7 +192,9 @@ else:
         from llama_cpp import Llama as _LlamaCheck
 
         if not hasattr(_LlamaCheck, "create_chat_completion"):
-            raise ImportError("Loaded the dummy Llama stub — llama-cpp-python may not be installed.")
+            raise ImportError(
+                "Loaded the dummy Llama stub — llama-cpp-python may not be installed."
+            )
 
         print("  Initializing llama.cpp ...")
         print("  Loading tokenizer   ...")
@@ -442,7 +449,13 @@ async def signup(request: Request, user_data: UserCreate, db: Session = Depends(
         raise HTTPException(status_code=400, detail="Email already registered")
 
     # Create new user
-    user = create_user(db, user_data.name, user_data.email, user_data.password, user_data.preferred_language)
+    user = create_user(
+        db,
+        user_data.name,
+        user_data.email,
+        user_data.password,
+        user_data.preferred_language,
+    )
 
     # Generate access token
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
@@ -499,11 +512,18 @@ async def get_current_user_info(token: str, db: Session = Depends(get_db)):
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return UserResponse(id=user.id, name=user.name, email=user.email, created_at=user.created_at.isoformat())
+    return UserResponse(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        created_at=user.created_at.isoformat(),
+    )
 
 
 # Authentication middleware
-async def get_current_user(authorization: str | None = Header(None), db: Session = Depends(get_db)) -> User:
+async def get_current_user(
+    authorization: str | None = Header(None), db: Session = Depends(get_db)
+) -> User:
     """Dependency to get current authenticated user from JWT token."""
     if authorization is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -535,7 +555,9 @@ async def get_current_user(authorization: str | None = Header(None), db: Session
 
 # System status endpoint
 @app.get("/system/status", response_model=SystemStatus)
-async def system_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def system_status(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Get real-time system status."""
     # Get counts from database
     memories_count = db.query(Memory).filter(Memory.user_id == current_user.id).count()
@@ -604,7 +626,9 @@ async def benchmark():
     response_time = time.time() - start_time
 
     # Calculate tokens per second
-    tokens_per_second = tokens_generated / response_time if response_time > 0 and tokens_generated > 0 else 0
+    tokens_per_second = (
+        tokens_generated / response_time if response_time > 0 and tokens_generated > 0 else 0
+    )
 
     # Get system metrics
     memory_info = SystemMonitor.get_memory_usage()
@@ -655,7 +679,9 @@ async def get_metrics(
 ):
     """Get performance metrics with optional filtering."""
     metrics_service = MetricsService(db)
-    metrics = metrics_service.get_metrics(metric_type=metric_type, user_id=current_user.id, limit=limit)
+    metrics = metrics_service.get_metrics(
+        metric_type=metric_type, user_id=current_user.id, limit=limit
+    )
 
     return [
         MetricsResponse(
@@ -675,7 +701,9 @@ async def get_metrics(
 
 @app.get("/metrics/aggregated/{metric_type}", response_model=AggregatedMetricsResponse)
 async def get_aggregated_metrics(
-    metric_type: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    metric_type: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Get aggregated statistics for a specific metric type."""
     metrics_service = MetricsService(db)
@@ -684,7 +712,9 @@ async def get_aggregated_metrics(
 
 @app.get("/metrics/inference/recent")
 async def get_recent_inference(
-    limit: int = 10, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Get recent inference statistics."""
     metrics_service = MetricsService(db)
@@ -700,14 +730,24 @@ async def cleanup_metrics(
     """Clean up old metrics (default: keep last 30 days)."""
     metrics_service = MetricsService(db)
     deleted_count = metrics_service.cleanup_old_metrics(days_to_keep=days_to_keep)
-    return {"deleted": deleted_count, "message": f"Deleted {deleted_count} old metric records"}
+    return {
+        "deleted": deleted_count,
+        "message": f"Deleted {deleted_count} old metric records",
+    }
 
 
 # Timeline endpoint
 @app.get("/timeline", response_model=list[TimelineItem])
-async def get_timeline(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_timeline(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Get all memories for timeline visualization (filtered by user)."""
-    memories = db.query(Memory).filter(Memory.user_id == current_user.id).order_by(Memory.created_at.asc()).all()
+    memories = (
+        db.query(Memory)
+        .filter(Memory.user_id == current_user.id)
+        .order_by(Memory.created_at.asc())
+        .all()
+    )
 
     timeline_items = []
     for memory in memories:
@@ -752,9 +792,7 @@ async def chat(
     if llm is None:
 
         async def error_stream():
-            error_msg = (
-                "Memento AI couldn't find a local AI model. Please install a compatible GGUF model. See Setup Guide."
-            )
+            error_msg = "Memento AI couldn't find a local AI model. Please install a compatible GGUF model. See Setup Guide."
             yield f"data: {json.dumps({'error': error_msg})}\n\n"
 
         return StreamingResponse(error_stream(), media_type="text/event-stream")
@@ -766,7 +804,9 @@ async def chat(
             session_id = chat_data.session_id or str(uuid.uuid4())
 
             # Initialize AI modules with session_id
-            conversation_intel = ConversationIntelligence(db, current_user.id, session_id=session_id)
+            conversation_intel = ConversationIntelligence(
+                db, current_user.id, session_id=session_id
+            )
             personality = PersonalityEngine()
             prompt_builder = PromptBuilder(personality)
             doc_retriever = DocumentAwareRetriever(db, current_user.id)
@@ -822,7 +862,10 @@ async def chat(
             # Build dynamic prompt
             if conversation_intel.should_use_coding_mode(sanitized_message):
                 prompt = prompt_builder.build_coding_prompt(
-                    sanitized_message, intelligence, intelligence["history"], detected_language
+                    sanitized_message,
+                    intelligence,
+                    intelligence["history"],
+                    detected_language,
                 )
             else:
                 prompt = prompt_builder.build_prompt(
@@ -886,7 +929,9 @@ async def chat(
                 )
 
                 # Fetch or generate title for the session
-                existing_conv = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+                existing_conv = (
+                    db.query(Conversation).filter(Conversation.session_id == session_id).first()
+                )
                 if existing_conv:
                     title = existing_conv.title
                 else:
@@ -931,7 +976,9 @@ async def chat(
 
             # Format response
             formatted_response = response_formatter.format_markdown(full_response)
-            formatted_response = response_formatter.add_structure(formatted_response, intelligence["intent"])
+            formatted_response = response_formatter.add_structure(
+                formatted_response, intelligence["intent"]
+            )
             formatted_response = response_formatter.ensure_readability(formatted_response)
 
             # Add source attribution
@@ -961,7 +1008,9 @@ async def chat(
             # Record inference metrics
             try:
                 metrics_service = MetricsService(db)
-                model_name = llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path
+                model_name = (
+                    llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path
+                )
                 metrics_service.record_inference(
                     model_name=model_name,
                     duration_seconds=llm.last_inference_time,
@@ -976,11 +1025,15 @@ async def chat(
                 "inference_time_seconds": round(llm.last_inference_time, 2),
                 "tokens_per_second": round(llm.last_tokens_per_second, 1),
                 "memory_usage_mb": round(SystemMonitor.get_memory_usage()["rss_mb"], 1),
-                "model": llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path,
+                "model": (
+                    llm.model_path.split("/")[-1] if "/" in llm.model_path else llm.model_path
+                ),
             }
 
             # Fetch or generate title for the session
-            existing_conv = db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            existing_conv = (
+                db.query(Conversation).filter(Conversation.session_id == session_id).first()
+            )
             if existing_conv:
                 title = existing_conv.title
             else:
@@ -1045,7 +1098,9 @@ async def create_memory_endpoint(
 
 @app.get("/memories/{memory_id}", response_model=MemoryResponse)
 async def get_memory_endpoint(
-    memory_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    memory_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     memory = MemoryService.get_memory(db, memory_id)
     if not memory:
@@ -1101,7 +1156,9 @@ async def update_memory_endpoint(
 
 @app.delete("/memories/{memory_id}")
 async def delete_memory_endpoint(
-    memory_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    memory_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     memory = db.query(Memory).filter(Memory.id == memory_id).first()
     if not memory:
@@ -1152,7 +1209,9 @@ async def get_conversation_endpoint(conversation_id: int, db: Session = Depends(
 
 
 @app.get("/conversations", response_model=list[ConversationResponse])
-async def get_all_conversations_endpoint(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_all_conversations_endpoint(
+    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+):
     return ConversationService.get_all_conversations(db, skip, limit)
 
 
@@ -1177,7 +1236,9 @@ class LanguageUpdateRequest(BaseModel):
 
 
 @app.get("/conversations/sessions")
-async def get_conversation_sessions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_conversation_sessions(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Get all conversation sessions for the current user, ordered by pin status and recency."""
     from sqlalchemy import func
 
@@ -1195,10 +1256,18 @@ async def get_conversation_sessions(current_user: User = Depends(get_current_use
     )
 
     # Query from the subquery and order
-    sessions = db.query(subquery).order_by(subquery.c.is_pinned.desc(), subquery.c.latest_time.desc()).all()
+    sessions = (
+        db.query(subquery)
+        .order_by(subquery.c.is_pinned.desc(), subquery.c.latest_time.desc())
+        .all()
+    )
 
     result = []
-    for s in sorted(sessions, key=lambda x: (x.is_pinned, x.latest_time or datetime.min), reverse=True):
+    for s in sorted(
+        sessions,
+        key=lambda x: (x.is_pinned, x.latest_time or datetime.min),
+        reverse=True,
+    ):
         result.append(
             {
                 "session_id": s.session_id,
@@ -1212,12 +1281,17 @@ async def get_conversation_sessions(current_user: User = Depends(get_current_use
 
 @app.get("/conversations/session/{session_id}")
 async def get_session_messages(
-    session_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Get all messages for a specific conversation session."""
     convs = (
         db.query(Conversation)
-        .filter(Conversation.user_id == current_user.id, Conversation.session_id == session_id)
+        .filter(
+            Conversation.user_id == current_user.id,
+            Conversation.session_id == session_id,
+        )
         .order_by(Conversation.timestamp.asc())
         .all()
     )
@@ -1225,9 +1299,21 @@ async def get_session_messages(
     result = []
     for c in convs:
         # User message
-        result.append({"role": "user", "content": c.question, "timestamp": c.timestamp.isoformat()})
+        result.append(
+            {
+                "role": "user",
+                "content": c.question,
+                "timestamp": c.timestamp.isoformat(),
+            }
+        )
         # Assistant response
-        result.append({"role": "assistant", "content": c.answer, "timestamp": c.timestamp.isoformat()})
+        result.append(
+            {
+                "role": "assistant",
+                "content": c.answer,
+                "timestamp": c.timestamp.isoformat(),
+            }
+        )
     return result
 
 
@@ -1241,7 +1327,10 @@ async def rename_session(
     """Rename a conversation session."""
     convs = (
         db.query(Conversation)
-        .filter(Conversation.user_id == current_user.id, Conversation.session_id == session_id)
+        .filter(
+            Conversation.user_id == current_user.id,
+            Conversation.session_id == session_id,
+        )
         .all()
     )
 
@@ -1269,7 +1358,10 @@ async def pin_session(
     """Pin or unpin a conversation session."""
     convs = (
         db.query(Conversation)
-        .filter(Conversation.user_id == current_user.id, Conversation.session_id == session_id)
+        .filter(
+            Conversation.user_id == current_user.id,
+            Conversation.session_id == session_id,
+        )
         .all()
     )
 
@@ -1290,12 +1382,17 @@ async def pin_session(
 
 @app.delete("/conversations/session/{session_id}")
 async def delete_session(
-    session_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Delete all messages for a specific conversation session."""
     deleted = (
         db.query(Conversation)
-        .filter(Conversation.user_id == current_user.id, Conversation.session_id == session_id)
+        .filter(
+            Conversation.user_id == current_user.id,
+            Conversation.session_id == session_id,
+        )
         .delete()
     )
 
@@ -1323,7 +1420,9 @@ async def update_user_language(
 
 # Documents endpoint
 @app.get("/documents", response_model=list[DocumentResponse])
-async def get_documents(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_documents(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Get all documents (memories with source_file) for the current user."""
     memories = (
         db.query(Memory)
@@ -1364,11 +1463,17 @@ async def get_documents(current_user: User = Depends(get_current_user), db: Sess
 
 @app.delete("/documents/{document_id}")
 async def delete_document_endpoint(
-    document_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Delete a document and all its associated memories."""
     # Get all memories with this source_file
-    documents = db.query(Memory).filter(Memory.user_id == current_user.id, Memory.source_file.isnot(None)).all()
+    documents = (
+        db.query(Memory)
+        .filter(Memory.user_id == current_user.id, Memory.source_file.isnot(None))
+        .all()
+    )
 
     # Group by source_file to find the document
     documents_dict = {}
@@ -1385,7 +1490,9 @@ async def delete_document_endpoint(
     filename = document_list[document_id - 1]
 
     # Delete all memories with this source_file
-    db.query(Memory).filter(Memory.user_id == current_user.id, Memory.source_file == filename).delete()
+    db.query(Memory).filter(
+        Memory.user_id == current_user.id, Memory.source_file == filename
+    ).delete()
 
     db.commit()
     return {"message": "Document deleted successfully"}
@@ -1404,7 +1511,18 @@ async def upload_document_async(request: Request, file: UploadFile = File(...)):
     file_extension = file.filename.split(".")[-1].lower() if "." in file.filename else ""
 
     # Validate file type
-    supported_types = ["pdf", "txt", "png", "jpg", "jpeg", "gif", "bmp", "tiff", "wav", "mp3"]
+    supported_types = [
+        "pdf",
+        "txt",
+        "png",
+        "jpg",
+        "jpeg",
+        "gif",
+        "bmp",
+        "tiff",
+        "wav",
+        "mp3",
+    ]
     if file_extension not in supported_types:
         raise HTTPException(
             status_code=400,
@@ -1438,7 +1556,9 @@ async def upload_document_async(request: Request, file: UploadFile = File(...)):
 
         with contextlib.suppress(BaseException):
             os.unlink(temp_file_path)
-        raise HTTPException(status_code=500, detail=f"Failed to submit document for processing: {e!s}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to submit document for processing: {e!s}"
+        )
 
     return AsyncUploadResponse(message="Document submitted for processing", task_id=task_id)
 
@@ -1487,7 +1607,20 @@ TEXT_TYPES = {
 }
 IMAGE_TYPES = {"png", "jpg", "jpeg", "gif", "bmp", "tiff", "webp", "svg", "ico"}
 AUDIO_TYPES = {"mp3", "wav", "ogg", "flac", "aac", "m4a", "wma", "opus"}
-VIDEO_TYPES = {"mp4", "mov", "avi", "mkv", "webm", "flv", "wmv", "mpeg", "mpg", "3gp", "ts", "m4v"}
+VIDEO_TYPES = {
+    "mp4",
+    "mov",
+    "avi",
+    "mkv",
+    "webm",
+    "flv",
+    "wmv",
+    "mpeg",
+    "mpg",
+    "3gp",
+    "ts",
+    "m4v",
+}
 DOC_TYPES = {"pdf", "txt", "md", "csv", "docx", "doc", "rtf", "odt"}
 
 
@@ -1538,7 +1671,10 @@ async def upload_document(
     if file_size == 0:
         raise HTTPException(status_code=400, detail="File is empty.")
     if file_size > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail=f"File too large ({_format_size(file_size)}). Max 500 MB.")
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large ({_format_size(file_size)}). Max 500 MB.",
+        )
 
     # Save the file persistently to backend/uploads
     persistent_file_path = os.path.join(uploads_dir, filename)
@@ -1585,7 +1721,9 @@ async def upload_document(
         preview = extracted_text[:3000] + ("…[truncated]" if len(extracted_text) > 3000 else "")
         memory_content = meta_block + f"\nContent Preview:\n{preview}"
     else:
-        memory_content = meta_block + "\nNote: Content not extracted (binary/media file stored as metadata)."
+        memory_content = (
+            meta_block + "\nNote: Content not extracted (binary/media file stored as metadata)."
+        )
 
     # ── Save memory immediately ────────────────────────────────────────────────
     memory_title = f"[{category.capitalize()}] {filename}"

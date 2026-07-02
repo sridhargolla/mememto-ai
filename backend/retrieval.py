@@ -1,6 +1,6 @@
+from embedding_service import EmbeddingService
 from sqlalchemy.orm import Session
 
-from embedding_service import EmbeddingService
 from models import Memory
 
 
@@ -175,7 +175,11 @@ class MemoryRetriever:
 
     @staticmethod
     def retrieve_memories(
-        db: Session, query: str, top_k: int = 3, min_score: float = 0.2, user_id: int | None = None
+        db: Session,
+        query: str,
+        top_k: int = 3,
+        min_score: float = 0.2,
+        user_id: int | None = None,
     ) -> list[tuple[Memory, float]]:
         """
         Retrieve most relevant memories for a query.
@@ -270,7 +274,11 @@ class MemoryRetriever:
 
         # Get all memories with embeddings (filtered by user if provided)
         if user_id:
-            memories = db.query(Memory).filter(Memory.embedding.isnot(None), Memory.user_id == user_id).all()
+            memories = (
+                db.query(Memory)
+                .filter(Memory.embedding.isnot(None), Memory.user_id == user_id)
+                .all()
+            )
         else:
             memories = db.query(Memory).filter(Memory.embedding.isnot(None)).all()
 
@@ -284,7 +292,9 @@ class MemoryRetriever:
             if memory.embedding:
                 try:
                     memory_embedding = embedding_service.deserialize_embedding(memory.embedding)
-                    similarity = embedding_service.calculate_similarity(query_embedding, memory_embedding)
+                    similarity = embedding_service.calculate_similarity(
+                        query_embedding, memory_embedding
+                    )
                     if similarity >= min_similarity:
                         scored_memories.append((memory, similarity))
                 except Exception as e:
@@ -339,7 +349,11 @@ class MemoryRetriever:
             if memory.id in scores:
                 scores[memory.id]["keyword"] = score
             else:
-                scores[memory.id] = {"memory": memory, "semantic": 0.0, "keyword": score}
+                scores[memory.id] = {
+                    "memory": memory,
+                    "semantic": 0.0,
+                    "keyword": score,
+                }
 
         # Calculate weighted sum (70% semantic, 30% keyword)
         scored_memories = []
