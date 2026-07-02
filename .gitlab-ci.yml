@@ -48,6 +48,14 @@ frontend-lint:
   script:
     - npm run lint || true # Allow failure if there are legacy frontend warnings
 
+vulture-lint:
+  stage: lint
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - pip install vulture
+  script:
+    - vulture backend
+
 # -----------------
 # FORMAT STAGE
 # -----------------
