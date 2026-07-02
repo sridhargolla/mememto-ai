@@ -44,7 +44,7 @@ function UploadZone({ onUpload, uploading }) {
       // Simulate progress stages
       setUploadProgress(20);
       setUploadStage('Uploading file...');
-      
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         headers: {
@@ -59,12 +59,12 @@ function UploadZone({ onUpload, uploading }) {
       if (response.ok) {
         setUploadProgress(70);
         setUploadStage('Running AI extraction...');
-        
+
         const data = await response.json();
-        
+
         setUploadProgress(90);
         setUploadStage('Creating memories...');
-        
+
         setTimeout(() => {
           setUploadProgress(100);
           setUploadStage('Completed!');
@@ -98,15 +98,15 @@ function UploadZone({ onUpload, uploading }) {
         className="hidden"
         accept=".pdf,.txt,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.wav,.mp3"
       />
-      
+
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !uploading && fileInputRef.current?.click()}
         className={`glass-card-dark p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-300 ${
-          isDragging 
-            ? 'border-purple-500 bg-purple-500/10 scale-105' 
+          isDragging
+            ? 'border-purple-500 bg-purple-500/10 scale-105'
             : 'border-slate-600 hover:border-purple-500/50 hover:bg-slate-800/50'
         } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
@@ -116,7 +116,7 @@ function UploadZone({ onUpload, uploading }) {
               <div className="text-4xl animate-spin">⏳</div>
             </div>
             <div className="w-full bg-slate-700 rounded-full h-2 mb-4">
-              <div 
+              <div
                 className="bg-purple-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />

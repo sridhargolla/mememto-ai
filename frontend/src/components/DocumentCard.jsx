@@ -41,8 +41,8 @@ function DocumentCard({ document, onDelete }) {
       {document.status && (
         <div className="mb-3">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            document.status === 'completed' 
-              ? 'bg-green-500/20 text-green-400' 
+            document.status === 'completed'
+              ? 'bg-green-500/20 text-green-400'
               : document.status === 'processing'
               ? 'bg-yellow-500/20 text-yellow-400'
               : 'bg-red-500/20 text-red-400'

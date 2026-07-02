@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Send, Paperclip, ChevronDown, ChevronUp, MessageSquare, 
-  Sparkles, Zap, BookOpen, Brain, Plus, Trash2, Edit2, Pin, X, Search, StopCircle 
+import {
+  Send, Paperclip, ChevronDown, ChevronUp, MessageSquare,
+  Sparkles, Zap, BookOpen, Brain, Plus, Trash2, Edit2, Pin, X, Search, StopCircle
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
@@ -101,7 +101,7 @@ function Chat() {
     localStorage.setItem('currentSessionId', session_id);
     setFollowups([]);
     setMessages([]);
-    
+
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(`${API_BASE}/conversations/session/${session_id}`, {
@@ -130,7 +130,7 @@ function Chat() {
   const handleClearChat = async () => {
     if (!currentSessionId) return;
     if (!confirm(t('chat.clearConfirm', 'Are you sure you want to clear the messages in this chat session?'))) return;
-    
+
     const token = localStorage.getItem('token');
     try {
       const res = await fetch(`${API_BASE}/conversations/session/${currentSessionId}`, {
@@ -223,13 +223,13 @@ function Chat() {
 
   const submitChatMessage = async (text, isContinue = false, editIndex = null) => {
     if (isLoading) return;
-    
+
     const token = localStorage.getItem('token');
     const targetMessage = text.trim();
     if (!targetMessage && !isContinue) return;
 
     let updatedMessages = [...messages];
-    
+
     if (isContinue) {
       setIsLoading(true);
       setTypingIndicator(true);
@@ -483,8 +483,8 @@ function Chat() {
                     <div
                       key={session.session_id}
                       className={`group relative flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition ${
-                        isSelected 
-                          ? 'bg-purple-600/20 border border-purple-500/20 text-white' 
+                        isSelected
+                          ? 'bg-purple-600/20 border border-purple-500/20 text-white'
                           : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                       }`}
                     >

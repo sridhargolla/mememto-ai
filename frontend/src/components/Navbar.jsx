@@ -9,7 +9,7 @@ function Navbar({ onMenuClick, title, subtitle }) {
     const newLang = e.target.value;
     await i18n.changeLanguage(newLang);
     localStorage.setItem('language', newLang);
-    
+
     // Persist language to backend database if logged in
     const token = localStorage.getItem('token');
     if (token) {

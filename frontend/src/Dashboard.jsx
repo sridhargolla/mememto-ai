@@ -60,7 +60,7 @@ function Dashboard() {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = JSON.parse(line.slice(6));
-            
+
             if (data.token) {
               fullContent += data.token;
               setMessages(prev => {
@@ -216,8 +216,8 @@ function Dashboard() {
                 messages.map((msg, idx) => (
                   <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                     <div className={`inline-block max-w-[80%] p-4 rounded-lg ${
-                      msg.role === 'user' 
-                        ? 'bg-purple-600 text-white' 
+                      msg.role === 'user'
+                        ? 'bg-purple-600 text-white'
                         : 'bg-slate-700 text-gray-200'
                     }`}>
                       {msg.content || (isLoading && idx === messages.length - 1 ? 'Thinking...' : '')}

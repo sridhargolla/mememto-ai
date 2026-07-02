@@ -27,8 +27,8 @@ function Landing() {
             <Link to="/login" className="px-4 py-2 text-white hover:text-purple-300 transition">
               {t('auth.login')}
             </Link>
-            <Link 
-              to="/signup" 
+            <Link
+              to="/signup"
               className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
             >
               {t('auth.signup')}
@@ -46,14 +46,14 @@ function Landing() {
             {t('landing.description')}
           </p>
           <div className="flex gap-4">
-            <Link 
-              to="/signup" 
+            <Link
+              to="/signup"
               className="px-8 py-4 bg-purple-600 text-white text-lg font-semibold rounded-lg hover:bg-purple-700 transition shadow-lg"
             >
               {t('landing.getStarted')}
             </Link>
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="px-8 py-4 bg-transparent border-2 border-white text-white text-lg font-semibold rounded-lg hover:bg-white hover:text-slate-900 transition"
             >
               {t('landing.signIn')}

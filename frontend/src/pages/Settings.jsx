@@ -21,7 +21,7 @@ function Settings() {
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
     setUser(userData);
-    
+
     // Fetch AI status
     fetch(`${API_BASE}/status`)
       .then(res => res.json())
@@ -42,13 +42,13 @@ function Settings() {
     if (!confirm(t('settings.deleteConfirm1'))) {
       return;
     }
-    
+
     if (!confirm(t('settings.deleteConfirm2'))) {
       return;
     }
 
     const token = localStorage.getItem('token');
-    
+
     try {
       // This would need to be implemented on the backend
       alert('Data deletion feature requires backend implementation');
@@ -61,10 +61,10 @@ function Settings() {
     <BackgroundLayout image={backgroundImages.settings}>
       <div className="min-h-screen flex">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        
+
         <div className="flex-1 flex flex-col lg:ml-64">
           <Navbar onMenuClick={() => setSidebarOpen(true)} title={t('settings.title')} />
-          
+
           <main className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-4xl mx-auto space-y-8">
             {/* Profile Section */}

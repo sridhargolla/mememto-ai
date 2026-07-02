@@ -26,77 +26,77 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route 
-            path="/dashboard" 
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/chat" 
+          <Route
+            path="/dashboard/chat"
             element={
               <ProtectedRoute>
                 <Chat />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/documents" 
+          <Route
+            path="/dashboard/documents"
             element={
               <ProtectedRoute>
                 <Documents />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/memories" 
+          <Route
+            path="/dashboard/memories"
             element={
               <ProtectedRoute>
                 <Memories />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/timeline" 
+          <Route
+            path="/dashboard/timeline"
             element={
               <ProtectedRoute>
                 <Timeline />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/privacy" 
+          <Route
+            path="/dashboard/privacy"
             element={
               <ProtectedRoute>
                 <Privacy />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/settings" 
+          <Route
+            path="/dashboard/settings"
             element={
               <ProtectedRoute>
                 <Settings />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/status" 
+          <Route
+            path="/dashboard/status"
             element={
               <ProtectedRoute>
                 <SystemStatus />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/dashboard/performance" 
+          <Route
+            path="/dashboard/performance"
             element={
               <ProtectedRoute>
                 <PerformanceDashboard />
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </AuthProvider>

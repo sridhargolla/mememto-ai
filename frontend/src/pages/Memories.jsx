@@ -57,7 +57,7 @@ function MemoryCard({ memory, onDelete, onClick }) {
   };
 
   return (
-    <div 
+    <div
       onClick={() => onClick(memory)}
       className="glass-card p-4 group animate-fade-in border border-transparent hover:border-purple-500/20 cursor-pointer flex flex-col justify-between h-full"
     >
@@ -358,10 +358,10 @@ function Memories() {
         <FileText size={40} className="text-slate-500 mb-2" />
         <p className="text-xs text-slate-300 font-medium">{filename}</p>
         <p className="text-[10px] text-slate-500">Document contents extracted as memory content on the left panel.</p>
-        <a 
-          href={sourceUrl} 
-          target="_blank" 
-          rel="noopener noreferrer" 
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className="mt-4 flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 font-medium transition"
         >
           <ExternalLink size={12} />
@@ -615,7 +615,7 @@ function Memories() {
                         <button
                           onClick={handleCopyContent}
                           className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
-                            copied 
+                            copied
                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                               : 'bg-slate-800 border border-white/5 hover:bg-slate-700 text-slate-300'
                           }`}
