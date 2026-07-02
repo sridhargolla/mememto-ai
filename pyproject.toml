@@ -40,7 +40,7 @@ disable = [
 ]
 
 [tool.pylint.master]
-ignore = [".venv", "node_modules"]
+ignore = [".venv", "node_modules", "vulture_whitelist.py"]
 
 [tool.mypy]
 python_version = "3.11"

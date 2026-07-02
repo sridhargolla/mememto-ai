@@ -89,7 +89,7 @@ def test_json_validation_valid():
     schema = MemorySchema(**valid_data)
     assert schema.type == "experience"
     assert schema.organization == "ABC Corp"
-    assert "Python" in schema.skills
+    assert "Python" in schema.skills  # pylint: disable=unsupported-membership-test
 
 
 def test_json_validation_invalid():
