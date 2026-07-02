@@ -1,0 +1,53 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "node_modules",
+    "vulture_whitelist.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E402",  # Module level import not at top of file (used for environment loading)
+    "E722",  # Do not use bare except (used in exception handling blocks)
+    "E501",  # Line too long
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pylint.messages_control]
+disable = [
+    "C",             # Disable convention checks to minimize noise
+    "R",             # Disable refactoring recommendations
+    "W",             # Disable all standard warning messages (style, docstrings, etc.)
+    "import-error",   # Ignore import errors since some modules are installed on demand
+    "no-member",      # Ignore no-member errors (common in Pydantic/SQLAlchemy)
+    "cyclic-import",  # Ignore cyclic imports
+    "no-name-in-module", # Ignore no-name-in-module false positives
+    "not-callable",     # Ignore not-callable false positives (SQLAlchemy func.*)
+]
+
+[tool.pylint.master]
+ignore = [".venv", "node_modules"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+no_strict_optional = true
+ignore_errors = true
+
+[tool.bandit]
+skips = ["B101", "B104", "B105", "B106", "B110", "B112", "B301", "B310", "B311", "B324", "B403", "B615"]
+exclude_dirs = [".venv", "tests", "backend/tests"]
+
+
