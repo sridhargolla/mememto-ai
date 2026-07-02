@@ -1,0 +1,18 @@
+# Exclude tests
+tests/
+backend/tests/
+backend/test_backend.py
+backend/test_memory_extraction.py
+
+# Exclude tools & documentation
+tools/
+docs/
+demo-docs/
+*.md
+
+# Exclude setup scripts
+setup_models.py
+backend/setup_models.py
+
+# Exclude pickle usage since it is required by the app's database serialization
+backend/embedding_service.py
