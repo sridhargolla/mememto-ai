@@ -42,8 +42,7 @@ def migrate():
 
         # 1. Create users table
         print("Creating users table...")
-        cursor.execute(
-            """
+        create_users_query = """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name VARCHAR(255) NOT NULL,
@@ -52,15 +51,14 @@ def migrate():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """
-        )
+        cursor.execute(create_users_query)
 
         # Create index on email
-        cursor.execute(
-            """
+        create_email_idx_query = """
             CREATE INDEX IF NOT EXISTS idx_users_email
             ON users(email)
         """
-        )
+        cursor.execute(create_email_idx_query)
 
         # 2. Add user_id column to memories table
         print("Adding user_id to memories table...")
@@ -68,18 +66,16 @@ def migrate():
         columns = [column[1] for column in cursor.fetchall()]
 
         if "user_id" not in columns:
-            cursor.execute(
-                """
+            alter_memories_query = """
                 ALTER TABLE memories
                 ADD COLUMN user_id INTEGER
             """
-            )
-            cursor.execute(
-                """
+            cursor.execute(alter_memories_query)
+            create_memories_idx_query = """
                 CREATE INDEX idx_memories_user_id
                 ON memories(user_id)
             """
-            )
+            cursor.execute(create_memories_idx_query)
             print("  - user_id column added to memories")
         else:
             print("  - user_id column already exists in memories")
@@ -90,18 +86,16 @@ def migrate():
         columns = [column[1] for column in cursor.fetchall()]
 
         if "user_id" not in columns:
-            cursor.execute(
-                """
+            alter_conv_query = """
                 ALTER TABLE conversations
                 ADD COLUMN user_id INTEGER
             """
-            )
-            cursor.execute(
-                """
+            cursor.execute(alter_conv_query)
+            create_conv_idx_query = """
                 CREATE INDEX idx_conversations_user_id
                 ON conversations(user_id)
             """
-            )
+            cursor.execute(create_conv_idx_query)
             print("  - user_id column added to conversations")
         else:
             print("  - user_id column already exists in conversations")
@@ -111,11 +105,12 @@ def migrate():
         default_password = "admin123"
         password_hash = hash_password(default_password)
 
-        cursor.execute(
-            """
+        insert_admin_query = """
             INSERT OR IGNORE INTO users (name, email, password_hash)
             VALUES (?, ?, ?)
-        """,
+        """
+        cursor.execute(
+            insert_admin_query,
             ("Admin", "admin@memento.local", password_hash),
         )
 

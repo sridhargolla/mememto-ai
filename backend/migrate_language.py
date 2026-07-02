@@ -25,13 +25,11 @@ def migrate():
             return
 
         # Add the preferred_language column
-        cursor.execute(
-            """
+        alter_query = """
             ALTER TABLE users
             ADD COLUMN preferred_language VARCHAR(10) NOT NULL DEFAULT 'en'
         """
-        )
-
+        cursor.execute(alter_query)
         conn.commit()
         print("Successfully added 'preferred_language' column to users table.")
 
