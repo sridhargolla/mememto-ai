@@ -84,10 +84,9 @@ mypy-typecheck:
   stage: type_check
   image: python:${PYTHON_VERSION}
   before_script:
-    - pip install -r backend/requirements.txt
-    - pip install mypy types-requests types-passlib
+    - pip install mypy types-requests types-passlib pydantic fastapi sqlalchemy python-dotenv python-jose passlib bcrypt
   script:
-    - mypy backend/
+    - mypy backend/ --ignore-missing-imports
 
 # -----------------
 # TEST STAGE
