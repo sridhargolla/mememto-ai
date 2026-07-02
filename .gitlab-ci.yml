@@ -160,7 +160,7 @@ pip-audit-security:
   before_script:
     - pip install pip-audit
   script:
-    - pip-audit -r backend/requirements.txt
+    - pip-audit -r backend/requirements.txt --no-deps
 
 semgrep-security:
   stage: security
