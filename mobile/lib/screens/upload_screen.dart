@@ -57,7 +57,7 @@ class _UploadScreenState extends State<UploadScreen> {
           });
           _selectedFile = null;
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -109,7 +109,7 @@ class _UploadScreenState extends State<UploadScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   if (_selectedFile != null)
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -140,7 +140,7 @@ class _UploadScreenState extends State<UploadScreen> {
                       ),
                     ),
                   if (_selectedFile != null) const SizedBox(height: 16),
-                  
+
                   Row(
                     children: [
                       Expanded(
@@ -171,7 +171,7 @@ class _UploadScreenState extends State<UploadScreen> {
                       ),
                     ],
                   ),
-                  
+
                   if (_errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
@@ -185,14 +185,14 @@ class _UploadScreenState extends State<UploadScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Uploaded Files Section
           Text(
             'Recently Uploaded',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          
+
           Expanded(
             child: _uploadedFiles.isEmpty
                 ? Center(

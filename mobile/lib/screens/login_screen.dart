@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } else {
       setState(() {
-        _errorMessage = apiService.isOffline 
+        _errorMessage = apiService.isOffline
           ? 'Cannot connect to server. Please ensure backend is running.'
           : 'Invalid credentials';
       });
@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Title
                     Text(
                       'Memento AI',
@@ -116,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: apiService.isOffline 
+                        color: apiService.isOffline
                           ? Colors.red.withOpacity(0.1)
                           : Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),

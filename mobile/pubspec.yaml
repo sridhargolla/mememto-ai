@@ -9,23 +9,23 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  
+
   # HTTP requests
   http: ^1.1.0
-  
+
   # Local storage
   shared_preferences: ^2.2.2
   sqflite: ^2.3.0
-  
+
   # State management
   provider: ^6.1.1
-  
+
   # File picker for uploads
   file_picker: ^6.1.1
-  
+
   # Permissions
   permission_handler: ^11.2.0
-  
+
   # UI components
   cupertino_icons: ^1.0.2
 
@@ -36,6 +36,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
+
   assets:
     - assets/images/

@@ -51,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen> {
         // Handle streaming response
         final lines = response.body.split('\n');
         String assistantMessage = '';
-        
+
         for (final line in lines) {
           if (line.startsWith('data: ')) {
             final data = line.substring(6);

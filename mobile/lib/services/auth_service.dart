@@ -19,7 +19,7 @@ class AuthService with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
     final userData = prefs.getString('user_data');
-    
+
     if (token != null && userData != null) {
       _isLoggedIn = true;
       _user = jsonDecode(userData);
@@ -41,10 +41,10 @@ class AuthService with ChangeNotifier {
         final userData = data['user'];
 
         await _apiService._saveToken(token);
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_data', jsonEncode(userData));
-        
+
         _isLoggedIn = true;
         _user = userData;
         notifyListeners();
@@ -72,10 +72,10 @@ class AuthService with ChangeNotifier {
         final userData = data['user'];
 
         await _apiService._saveToken(token);
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_data', jsonEncode(userData));
-        
+
         _isLoggedIn = true;
         _user = userData;
         notifyListeners();
@@ -91,10 +91,10 @@ class AuthService with ChangeNotifier {
 
   Future<void> logout() async {
     await _apiService.clearToken();
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_data');
-    
+
     _isLoggedIn = false;
     _user = null;
     notifyListeners();

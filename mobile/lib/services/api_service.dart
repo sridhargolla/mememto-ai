@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 class ApiService with ChangeNotifier {
   static const String baseUrl = 'http://10.0.2.2:8000'; // For Android emulator
   static const String localBaseUrl = 'http://localhost:8000'; // For physical device
-  
+
   String? _token;
   Map<String, dynamic>? _aiStatus;
   bool _isOffline = false;
@@ -45,7 +45,7 @@ class ApiService with ChangeNotifier {
       final response = await http.get(
         Uri.parse('$baseUrl/status'),
       ).timeout(const Duration(seconds: 5));
-      
+
       if (response.statusCode == 200) {
         _aiStatus = jsonDecode(response.body);
         _isOffline = false;
@@ -104,10 +104,10 @@ class ApiService with ChangeNotifier {
       final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$endpoint'));
       request.headers['Authorization'] = 'Bearer $_token';
       request.files.add(await http.MultipartFile.fromPath('file', filePath, filename: filename));
-      
+
       final response = await request.send().timeout(const Duration(seconds: 120));
       final responseData = await http.Response.fromStream(response);
-      
+
       _isOffline = false;
       notifyListeners();
       return responseData;

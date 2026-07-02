@@ -104,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            
+
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -129,8 +129,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             '🌐',
                             'Internet',
                             _aiStatus?['offline'] == true ? 'Offline' : 'Online',
-                            valueColor: _aiStatus?['offline'] == true 
-                                ? Colors.green 
+                            valueColor: _aiStatus?['offline'] == true
+                                ? Colors.green
                                 : Colors.red,
                           ),
                           const Divider(),

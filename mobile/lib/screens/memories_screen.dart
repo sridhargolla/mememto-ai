@@ -78,7 +78,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
