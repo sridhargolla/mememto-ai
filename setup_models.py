@@ -6,12 +6,10 @@ This script helps download and set up the required AI models for offline operati
 Run this script from the project root directory.
 """
 
-import os
+import hashlib
 import sys
 import urllib.request
-import hashlib
 from pathlib import Path
-
 
 # Model configurations
 MODELS = {
@@ -78,7 +76,9 @@ def download_file(url: str, destination: Path, description: str) -> bool:
                 percent = min(100, (downloaded / total_size) * 100)
                 downloaded_mb = downloaded / (1024 * 1024)
                 total_mb = total_size / (1024 * 1024)
-                sys.stdout.write(f"\r  Progress: {percent:.1f}% ({downloaded_mb:.1f}MB / {total_mb:.1f}MB)")
+                sys.stdout.write(
+                    f"\r  Progress: {percent:.1f}% ({downloaded_mb:.1f}MB / {total_mb:.1f}MB)"
+                )
                 sys.stdout.flush()
 
         urllib.request.urlretrieve(url, destination, progress_hook)
