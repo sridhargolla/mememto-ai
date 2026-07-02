@@ -66,3 +66,18 @@ exclude = [
 paths = ["backend"]
 min_confidence = 60
 sort_by_size = true
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.ruff_cache
+  | \.venv
+  | __pycache__
+  | node_modules
+)/
+'''
+
