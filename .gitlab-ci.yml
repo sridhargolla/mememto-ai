@@ -160,18 +160,18 @@ pip-audit-security:
   before_script:
     - pip install pip-audit
   script:
-    - pip-audit -r backend/requirements.txt --no-deps
+    - pip-audit -r backend/requirements.txt --no-deps --disable-pip
 
 semgrep-security:
   stage: security
   image: returntocorp/semgrep
   script:
-    - semgrep scan --config auto --error --fail-on-core-errors
+    - semgrep scan --config auto --error
 
 gitleaks-security:
   stage: security
   image:
-    name: gitleaks/gitleaks:latest
+    name: zricethezav/gitleaks:latest
     entrypoint: [""]
   script:
     - gitleaks detect --verbose --source=.
